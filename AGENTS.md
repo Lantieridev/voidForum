@@ -120,3 +120,149 @@ Backend (application.properties):
 
 Frontend (.env):
 - `VITE_API_URL=http://localhost:8080/api`
+
+## TODO List - Tareas del Proyecto
+
+### BACKEND - Core (Prioridad Máxima)
+
+#### 1. Configuración Base
+- [ ] Configurar application.properties con DB remota
+- [ ] Verificar conexión a MongoDB remota
+- [ ] Probar que el servidor inicia correctamente
+- [ ] Verificar CORS para frontend local
+
+#### 2. Autenticación JWT
+- [ ] Test endpoint `/api/auth/register` - crear usuario
+- [ ] Test endpoint `/api/auth/login` - obtener token
+- [ ] Test endpoint `/api/auth/me` - obtener usuario actual
+- [ ] Validar que el token funciona en endpoints privados
+- [ ] Manejar errores (usuario existe, credenciales inválidas)
+
+#### 3. Posts CRUD
+- [ ] Test `GET /api/posts` - listar posts con paginación
+- [ ] Test `GET /api/posts?tag=xxx` - filtrar por tag
+- [ ] Test `POST /api/posts` - crear post (con auth)
+- [ ] Test `GET /api/posts/{id}` - obtener post específico
+- [ ] Test `PUT /api/posts/{id}` - editar post (solo autor)
+- [ ] Test `DELETE /api/posts/{id}` - eliminar post (solo autor)
+
+#### 4. Votos (Posts)
+- [ ] Test `POST /api/posts/{id}/vote?type=up` - upvote
+- [ ] Test `POST /api/posts/{id}/vote?type=down` - downvote
+- [ ] Verificar que usuario no puede votar dos veces igual
+- [ ] Verificar que puede cambiar vote (up→down)
+- [ ] Verificar que puede quitar vote (clickear mismo)
+- [ ] Verificar conteo correcto de upvotes/downvotes
+
+#### 5. Comentarios CRUD
+- [ ] Test `GET /api/posts/{id}/comments` - listar comentarios
+- [ ] Test `POST /api/posts/{id}/comments` - crear comentario
+- [ ] Test `DELETE /api/comments/{id}` - eliminar comentario (solo autor)
+
+#### 6. Votos (Comentarios)
+- [ ] Test `POST /api/comments/{id}/vote?type=up`
+- [ ] Test `POST /api/comments/{id}/vote?type=down`
+- [ ] Mismos controles que votos de posts
+
+#### 7. Users/Profile (Opcional para MVP)
+- [ ] Test `GET /api/users/{id}/profile`
+- [ ] Test `GET /api/users/{id}/posts`
+
+---
+
+### BACKEND - Extras
+
+#### 8. Validación y Errores
+- [ ] Validar request bodies (no vacíos, email formato)
+- [ ] Manejo centralizado de excepciones
+- [ ] Mensajes de error claros
+
+#### 9. Testing
+- [ ] Tests unitarios para AuthService
+- [ ] Tests unitarios para PostService
+- [ ] Tests unitarios para CommentService
+
+#### 10. Seguridad
+- [ ] Proteger endpoints correctamente
+- [ ] No exponer passwords en responses
+- [ ] Validar ownership (autor puede editar/borrar)
+
+---
+
+### FRONTEND
+
+#### 11. Estructura Base
+- [ ] Setup completo de Vite + Tailwind
+- [ ] API client (`api.js`) con fetch
+- [ ] Manejo de JWT (guardar en localStorage)
+- [ ] Rutas/pages básicas
+
+#### 12. Auth UI
+- [ ] Página Login
+- [ ] Página Register
+- [ ] Manejo de sesión (logged in / logged out)
+- [ ] Logout functionality
+
+#### 13. Feed/Posts
+- [ ] Lista de posts con paginación
+- [ ] Mostrar votos (up/down counts)
+- [ ] Filtrar por tags
+- [ ] Links a detalle de post
+
+#### 14. Post Detail
+- [ ] Mostrar post completo
+- [ ] Renderizar contenido (texto plano)
+- [ ] Embeds de YouTube/Vimeo
+- [ ] Lista de comentarios
+- [ ] Formulario nuevo comentario
+
+#### 15. Crear Post
+- [ ] Formulario con title, content, tags
+- [ ] Validación básica
+- [ ] Redirect después de crear
+
+#### 16. Votos UI
+- [ ] Botones up/down en posts
+- [ ] Botones up/down en comentarios
+- [ ] Mostrar estado actual (voted)
+- [ ] Actualizar counts en tiempo real
+
+#### 17. Link Previews (Bonus)
+- [ ] Detectar URLs en contenido
+- [ ] Fetch metadata (Open Graph)
+- [ ] Mostrar preview card
+
+---
+
+### DOCUMENTACIÓN
+
+#### 18. Actualizar docs
+- [ ] API.md con ejemplos reales
+- [ ] DEVELOPMENT.md con troubleshooting real
+- [ ] README.md actualizado
+
+---
+
+## 🔄 Orden Sugerido de Trabajo
+
+```
+FASE 1: Backend Core (Semana 1)
+├── 1.1 Config DB + Server start
+├── 1.2 Auth endpoints
+├── 1.3 Posts CRUD
+├── 1.4 Votos posts
+├── 1.5 Comments CRUD
+└── 1.6 Votos comments
+
+FASE 2: Backend Extras (Semana 2)
+├── 2.1 Validación
+├── 2.2 Testing
+└── 2.3 Security review
+
+FASE 3: Frontend (Semana 2-3)
+├── 3.1 Setup + API client
+├── 3.2 Auth UI
+├── 3.3 Posts list/detail
+├── 3.4 Votos UI
+└── 3.5 Embeds + Link previews
+```
