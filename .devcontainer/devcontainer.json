@@ -1,0 +1,17 @@
+{
+  "name": "VoidForum",
+  "image": "mcr.microsoft.com/devcontainers/java:17",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "vscjava.vscode-java-pack",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "postCreateCommand": "cd frontend && npm install",
+  "remoteUser": "java"
+}
