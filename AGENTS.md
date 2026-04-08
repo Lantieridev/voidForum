@@ -36,6 +36,40 @@ voidForum/
 └── .gitignore
 ```
 
+## MongoDB Configuration
+
+### Connection
+- **Atlas Cluster**: tpgrupo15.g7bd9qy.mongodb.net
+- **Database**: voidforum
+- **URI**: `mongodb+srv://TP_Grupo15:5Cd1S1JjAEcYj4s1@tpgrupo15.g7bd9qy.mongodb.net/voidforum`
+
+### Colecciones
+| Collection | Descripción |
+|------------|-------------|
+| `users` | Usuarios del sistema |
+| `posts` | Publicaciones del foro |
+| `comments` | Comentarios en posts |
+| `votes` | Registro de votos (evita duplicados) |
+
+### Índices Recomendados
+```javascript
+// users
+db.users.createIndex({ "username": 1 }, { unique: true })
+db.users.createIndex({ "email": 1 }, { unique: true })
+
+// posts
+db.posts.createIndex({ "authorId": 1 })
+db.posts.createIndex({ "tags": 1 })
+db.posts.createIndex({ "createdAt": -1 })
+
+// comments
+db.comments.createIndex({ "postId": 1, "createdAt": -1 })
+db.comments.createIndex({ "authorId": 1 })
+
+// votes
+db.votes.createIndex({ "userId": 1, "targetId": 1, "targetType": 1 }, { unique: true })
+```
+
 ## Important Notes
 
 ### Embeds (Videos)
@@ -116,7 +150,7 @@ Los tags son arrays de strings. Queries comunes:
 
 Backend (application.properties):
 - `spring.data.mongodb.uri` - URI de MongoDB
-- `jwt.secret` - Clave JWT (生成 con java -jar)
+- `jwt.secret` - Clave JWT
 
 Frontend (.env):
 - `VITE_API_URL=http://localhost:8080/api`
@@ -243,10 +277,10 @@ Frontend (.env):
 
 ---
 
-## 🔄 Orden Sugerido de Trabajo
+## Orden Sugerido de Trabajo
 
 ```
-FASE 1: Backend Core (Semana 1)
+FASE 1: Backend Core
 ├── 1.1 Config DB + Server start
 ├── 1.2 Auth endpoints
 ├── 1.3 Posts CRUD
@@ -254,12 +288,12 @@ FASE 1: Backend Core (Semana 1)
 ├── 1.5 Comments CRUD
 └── 1.6 Votos comments
 
-FASE 2: Backend Extras (Semana 2)
+FASE 2: Backend Extras
 ├── 2.1 Validación
 ├── 2.2 Testing
 └── 2.3 Security review
 
-FASE 3: Frontend (Semana 2-3)
+FASE 3: Frontend
 ├── 3.1 Setup + API client
 ├── 3.2 Auth UI
 ├── 3.3 Posts list/detail
