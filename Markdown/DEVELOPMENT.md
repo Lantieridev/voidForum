@@ -82,8 +82,9 @@ openssl rand -base64 32
 #### "Cannot find module './api'"
 Verificar que el archivo exista y la ruta sea correcta.
 Los imports deben ser relativos:
+
 ```javascript
-import { api } from './api.js';
+import {api} from './API.md';
 ```
 
 #### "Tailwind not applying styles"

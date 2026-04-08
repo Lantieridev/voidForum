@@ -6,7 +6,7 @@ Foro comunitario creado para el trabajo práctico de Base de Datos II.
 
 - **Frontend**: JavaScript + Tailwind CSS + Vite
 - **Backend**: Java (Spring Boot)
-- **Bases de Datos**: MongoDB + Redis
+- **Bases de Datos**: MongoDB
 
 ## Estructura del Proyecto
 
@@ -33,7 +33,6 @@ Foro comunitario creado para el trabajo práctico de Base de Datos II.
 - Maven 3.8+
 - Node.js 18+
 - MongoDB
-- Redis
 
 ## Ejecutar el proyecto
 
