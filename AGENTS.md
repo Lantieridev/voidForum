@@ -4,7 +4,7 @@
 
 - **Backend**: Java 17 + Spring Boot 3.2 + MongoDB
 - **Frontend**: Vite + Tailwind CSS 4 + Vanilla JS
-- **Auth**: JWT (sin Redis)
+- **Auth**: JWT (sin Redis, sin sesión)
 - **Build**: Maven (backend), npm (frontend)
 
 ## Project Structure
@@ -13,7 +13,7 @@
 voidForum/
 ├── src/main/java/com/voidforum/
 │   ├── VoidForumApplication.java
-│   ├── config/           # CORS, Security, Redis
+│   ├── config/           # CORS, Security
 │   ├── controller/       # REST endpoints
 │   ├── model/           # Entities (User, Post, Comment, Vote)
 │   ├── repository/      # MongoRepository interfaces
@@ -116,7 +116,6 @@ Los tags son arrays de strings. Queries comunes:
 
 Backend (application.properties):
 - `spring.data.mongodb.uri` - URI de MongoDB
-- `spring.data.redis.host` - Host Redis
 - `jwt.secret` - Clave JWT (生成 con java -jar)
 
 Frontend (.env):
