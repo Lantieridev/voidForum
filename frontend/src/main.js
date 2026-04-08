@@ -1,0 +1,1 @@
+console.log('VoidForum frontend ready');
