@@ -49,7 +49,7 @@ npm run build
 
 **Backend** - Editar `src/main/resources/application.properties`:
 ```properties
-spring.data.mongodb.uri=mongodb://localhost:27017/forum_bd
+spring.data.mongodb.uri=mongodb://localhost:27017/voidforum
 server.port=8080
 ```
 

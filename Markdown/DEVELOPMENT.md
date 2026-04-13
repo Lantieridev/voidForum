@@ -51,7 +51,7 @@ server.port=8081
 1. Verificar que MongoDB esté corriendo
 2. Checkear URI de conexión:
 ```properties
-spring.data.mongodb.uri=mongodb://localhost:27017/forum_bd
+spring.data.mongodb.uri=mongodb://localhost:27017/voidforum
 ```
 3. Si es remoto, verificar IP/credenciales
 
@@ -82,9 +82,8 @@ openssl rand -base64 32
 #### "Cannot find module './api'"
 Verificar que el archivo exista y la ruta sea correcta.
 Los imports deben ser relativos:
-
 ```javascript
-import {api} from './API.md';
+import { api } from './api.js';
 ```
 
 #### "Tailwind not applying styles"

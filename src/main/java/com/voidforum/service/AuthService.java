@@ -1,65 +1,69 @@
 package com.voidforum.service;
 
+import com.voidforum.dto.UserLoginDto;
+import com.voidforum.dto.UserRegisterDto;
+import com.voidforum.dto.UserResponseDto;
 import com.voidforum.model.User;
 import com.voidforum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public record RegisterResponse(String token, UserResponse user) {}
-    public record UserResponse(String id, String username, String email) {}
-
-    public RegisterResponse register(String username, String email, String password) {
-        if (userRepository.existsByUsername(username)) {
-            throw new RuntimeException("Username already exists");
-        }
-        if (userRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email already exists");
+    public UserResponseDto register(UserRegisterDto request) {
+        // Validar si el username ya está en uso
+        if (userRepository.findByUsername(request.username()).isPresent()) {
+            throw new RuntimeException("El nombre de usuario ya existe");
         }
 
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setCreatedAt(LocalDateTime.now());
+        // Mapear de DTO a Entidad (User) usando el Builder de Lombok
+        User user = User.builder()
+                .username(request.username())
+                .email(request.email())
+                .password(request.password()) // NOTA: Aquí iría el BCrypt más adelante
+                .createdAt(LocalDateTime.now())
+                .build();
 
-        User saved = userRepository.save(user);
-        String token = jwtService.generateToken(saved.getId(), saved.getUsername());
+        User savedUser = userRepository.save(user);
 
-        return new RegisterResponse(token, new UserResponse(saved.getId(), saved.getUsername(), saved.getEmail()));
+        // Retornar el DTO de respuesta (sin la password)
+        return new UserResponseDto(
+                savedUser.getId(),
+                savedUser.getUsername(),
+                savedUser.getEmail(),
+                savedUser.getCreatedAt()
+        );
     }
 
-    public RegisterResponse login(String username, String password) {
-        Optional<User> userOpt = userRepository.findByUsername(username);
-        if (userOpt.isEmpty()) {
-            throw new RuntimeException("Invalid credentials");
+    public Map<String, Object> login(UserLoginDto request) {
+        // Buscar el usuario o lanzar error si no existe
+        User user = userRepository.findByUsername(request.username())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        // Comparar contraseñas
+        if (!user.getPassword().equals(request.password())) {
+            throw new RuntimeException("Contraseña incorrecta");
         }
 
-        User user = userOpt.get();
-        if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("Invalid credentials");
-        }
+        // Generar el Token JWT
+        String token = jwtService.generateToken(user.getUsername());
 
-        String token = jwtService.generateToken(user.getId(), user.getUsername());
-        return new RegisterResponse(token, new UserResponse(user.getId(), user.getUsername(), user.getEmail()));
-    }
-
-    public User getUserById(String id) {
-        return userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
-    }
-
-    public User getUserByUsername(String username) {
-        return userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+        // Devolver el token y los datos del usuario en un Map
+        return Map.of(
+                "token", token,
+                "user", new UserResponseDto(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getEmail(),
+                        user.getCreatedAt()
+                )
+        );
     }
 }

@@ -7,11 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -32,21 +29,20 @@ public class CommentController {
         
         List<Comment> comments = commentService.getCommentsByPost(postId);
         
-        List<Map<String, Object>> response = new ArrayList<>();
-        for (Comment comment : comments) {
+        List<Map<String, Object>> response = comments.stream().map(comment -> {
             String userVote = userId != null ? commentService.getUserVote(comment.getId(), userId) : null;
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", comment.getId());
-            map.put("postId", comment.getPostId());
-            map.put("authorId", comment.getAuthorId());
-            map.put("authorUsername", comment.getAuthorUsername());
-            map.put("content", comment.getContent());
-            map.put("createdAt", comment.getCreatedAt().toString());
-            map.put("upvotes", comment.getUpvotes());
-            map.put("downvotes", comment.getDownvotes());
-            map.put("userVote", userVote != null ? userVote : "");
-            response.add(map);
-        }
+            return Map.of(
+                    "id", comment.getId(),
+                    "postId", comment.getPostId(),
+                    "authorId", comment.getAuthorId(),
+                    "authorUsername", comment.getAuthorUsername(),
+                    "content", comment.getContent(),
+                    "createdAt", comment.getCreatedAt().toString(),
+                    "upvotes", comment.getUpvotes(),
+                    "downvotes", comment.getDownvotes(),
+                    "userVote", userVote != null ? userVote : ""
+            );
+        }).toList();
 
         return ResponseEntity.ok(response);
     }
