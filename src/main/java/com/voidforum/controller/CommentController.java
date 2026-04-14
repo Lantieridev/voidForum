@@ -4,6 +4,7 @@ import com.voidforum.model.Comment;
 import com.voidforum.service.CommentService;
 import com.voidforum.service.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,7 +19,30 @@ public class CommentController {
     private final CommentService commentService;
     private final JwtService jwtService;
 
+    // --- DTO (Records) para mandar y recibir datos ---
     public record CreateCommentRequest(String content) {}
+
+    // El molde seguro para devolver comentarios sin que exploten los nulos
+    public record CommentResponse(
+            String id, String postId, String authorId, String authorUsername,
+            String content, String createdAt, int upvotes, int downvotes, String userVote
+    ) {
+        public static CommentResponse fromComment(Comment comment, String userVote) {
+            return new CommentResponse(
+                    comment.getId(),
+                    comment.getPostId(),
+                    comment.getAuthorId(),
+                    comment.getAuthorUsername(),
+                    comment.getContent(),
+                    comment.getCreatedAt() != null ? comment.getCreatedAt().toString() : "",
+                    comment.getUpvotes(),
+                    comment.getDownvotes(),
+                    userVote != null ? userVote : ""
+            );
+        }
+    }
+
+    // --- ENDPOINTS ---
 
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<?> getComments(
@@ -26,22 +50,13 @@ public class CommentController {
             @RequestHeader(value = "Authorization", required = false) String authHeader
     ) {
         String userId = getUserIdIfAuthenticated(authHeader);
-        
+
         List<Comment> comments = commentService.getCommentsByPost(postId);
-        
-        List<Map<String, Object>> response = comments.stream().map(comment -> {
+
+        // Mapeamos usando nuestro record seguro
+        List<CommentResponse> response = comments.stream().map(comment -> {
             String userVote = userId != null ? commentService.getUserVote(comment.getId(), userId) : null;
-            return Map.of(
-                    "id", comment.getId(),
-                    "postId", comment.getPostId(),
-                    "authorId", comment.getAuthorId(),
-                    "authorUsername", comment.getAuthorUsername(),
-                    "content", comment.getContent(),
-                    "createdAt", comment.getCreatedAt().toString(),
-                    "upvotes", comment.getUpvotes(),
-                    "downvotes", comment.getDownvotes(),
-                    "userVote", userVote != null ? userVote : ""
-            );
+            return CommentResponse.fromComment(comment, userVote);
         }).toList();
 
         return ResponseEntity.ok(response);
@@ -56,14 +71,9 @@ public class CommentController {
         try {
             String userId = extractUserId(authHeader);
             Comment comment = commentService.createComment(postId, request.content(), userId);
-            return ResponseEntity.ok(Map.of(
-                    "id", comment.getId(),
-                    "postId", comment.getPostId(),
-                    "authorId", comment.getAuthorId(),
-                    "authorUsername", comment.getAuthorUsername(),
-                    "content", comment.getContent(),
-                    "createdAt", comment.getCreatedAt().toString()
-            ));
+
+            // Devolvemos 201 CREATED con el DTO formateado
+            return ResponseEntity.status(HttpStatus.CREATED).body(CommentResponse.fromComment(comment, null));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -102,13 +112,15 @@ public class CommentController {
         }
     }
 
+    // --- UTILIDADES DE SEGURIDAD ---
+
     private String extractUserId(String authHeader) {
         String token = authHeader.replace("Bearer ", "");
         return jwtService.extractUserId(token);
     }
 
     private String getUserIdIfAuthenticated(String authHeader) {
-        if (authHeader == null || authHeader.isEmpty()) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return null;
         }
         try {
@@ -117,8 +129,7 @@ public class CommentController {
                 return jwtService.extractUserId(token);
             }
         } catch (Exception e) {
-            // Invalid token
+            // Token inválido, devuelve null silenciosamente
         }
         return null;
-    }
-}
+    }}

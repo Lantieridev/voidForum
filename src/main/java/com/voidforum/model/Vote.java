@@ -30,7 +30,7 @@ public class Vote {
     private String targetId;
     private String targetType;
     private String voteType;
-
+    private String avatar;
     // Esta etiqueta funciona como un "reloj automático": apenas se crea el voto, anota la fecha y hora exacta sin que nosotros hagamos nada.
     @CreatedDate
     private LocalDateTime createdAt;

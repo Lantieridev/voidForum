@@ -1,54 +1,56 @@
 package com.voidforum.service;
 
+import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.SecretKey;
+import java.security.Key;
 import java.util.Date;
 
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret}")
-    private String secretKey;
+    private static final String SECRET_KEY = "dm9pZGZvcnVtLXNlY3JldC1rZXktZm9yLWRldmVsb3BtZW50LTIwMjY=";
 
-    @Value("${jwt.expiration}")
-    private long expiration;
-
-    public String generateToken(String userId, String username) {
+    public String generateToken(String userId) {
         return Jwts.builder()
-                .subject(userId)
-                .claim("username", username)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSigningKey())
+                .setSubject(userId)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24hs
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
+    // --- LOS MÉTODOS QUE FALTABAN PARA LEER EL TOKEN ---
+
     public String extractUserId(String token) {
-        return Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload()
-                .getSubject();
+        try {
+            // Desarmamos el token firmado criptográficamente para sacar el ID del usuario (Subject)
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(getSignInKey())
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            return claims.getSubject();
+        } catch (Exception e) {
+            throw new RuntimeException("Token inválido o expirado");
+        }
     }
 
     public boolean isTokenValid(String token) {
         try {
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token);
+            extractUserId(token);
             return true;
         } catch (Exception e) {
             return false;
         }
     }
 
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secretKey.getBytes());
+    private Key getSignInKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }
