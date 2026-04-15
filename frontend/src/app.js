@@ -1,4 +1,8 @@
-import { currentUser, posts, formatTimeAgo, getInitials } from './data.js';
+import { posts, formatTimeAgo, getInitials } from './data.js';
+import { init as initAuth, onAuthChange, logout as authLogout, isAuthenticated, getUser } from './auth/authManager.js';
+import { openLoginModal } from './auth/LoginModal.js';
+import { openRegisterModal } from './auth/RegisterModal.js';
+import { showRequireAuthCard } from './auth/requireAuth.js';
 
 const icons = {
   logo: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`,
@@ -24,7 +28,42 @@ let commentsExpanded = {};
 
 function createNavbar() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  
+  const loggedIn = window.isLoggedIn;
+  const user = window.currentUser;
+
+  const userSection = loggedIn && user ? `
+    <div class="user-menu">
+      <button class="user-avatar-btn" id="userMenuBtn">
+        <div class="user-avatar">${getInitials(user.displayName || user.username)}</div>
+        <span class="user-name">${user.displayName || user.username}</span>
+        ${icons.chevronDown}
+      </button>
+      <div class="dropdown-menu" id="userDropdown">
+        <button class="dropdown-item">
+          ${icons.user}
+          <span>Perfil</span>
+        </button>
+        <button class="dropdown-item">
+          ${icons.settings}
+          <span>Configuración</span>
+        </button>
+        <button class="dropdown-item">
+          ${icons.bell}
+          <span>Notificaciones</span>
+        </button>
+        <div class="dropdown-divider"></div>
+        <button class="dropdown-item" id="logoutBtn">
+          ${icons.logout}
+          <span>Cerrar sesión</span>
+        </button>
+      </div>
+    </div>
+  ` : `
+    <button class="login-btn" id="loginBtn">
+      Iniciar Sesión
+    </button>
+  `;
+
   return `
     <nav class="navbar">
       <div class="navbar-logo">
@@ -39,32 +78,7 @@ function createNavbar() {
             </span>
           </span>
         </button>
-        <div class="user-menu">
-          <button class="user-avatar-btn" id="userMenuBtn">
-            <div class="user-avatar">${getInitials(currentUser.displayName)}</div>
-            <span class="user-name">${currentUser.displayName}</span>
-            ${icons.chevronDown}
-          </button>
-          <div class="dropdown-menu" id="userDropdown">
-            <button class="dropdown-item">
-              ${icons.user}
-              <span>Perfil</span>
-            </button>
-            <button class="dropdown-item">
-              ${icons.settings}
-              <span>Configuración</span>
-            </button>
-            <button class="dropdown-item">
-              ${icons.bell}
-              <span>Notificaciones</span>
-            </button>
-            <div class="dropdown-divider"></div>
-            <button class="dropdown-item">
-              ${icons.logout}
-              <span>Cerrar sesión</span>
-            </button>
-          </div>
-        </div>
+        ${userSection}
       </div>
     </nav>
   `;
@@ -83,7 +97,7 @@ function createSearchBar() {
 
 function createPostCard(post) {
   const voteState = userVotes[post.id] || 0;
-  
+
   return `
     <article class="post-card" data-post-id="${post.id}" onclick="window.openPost('${post.id}')">
       <div class="post-header" onclick="event.stopPropagation()">
@@ -103,14 +117,14 @@ function createPostCard(post) {
         </div>
       ` : ''}
       <div class="post-actions">
-        <button class="action-btn vote-up ${voteState === 1 ? 'active' : ''}" data-post-id="${post.id}" data-vote="1" onclick="event.stopPropagation()">
+        <button class="action-btn vote-up ${voteState === 1 ? 'active' : ''}" data-post-id="${post.id}" data-vote="1" onclick="event.stopPropagation(); window.handleVote('${post.id}', 1)">
           ${icons.like}
           <span>${post.votes + voteState}</span>
         </button>
-        <button class="action-btn vote-down ${voteState === -1 ? 'active' : ''}" data-post-id="${post.id}" data-vote="-1" onclick="event.stopPropagation()">
+        <button class="action-btn vote-down ${voteState === -1 ? 'active' : ''}" data-post-id="${post.id}" data-vote="-1" onclick="event.stopPropagation(); window.handleVote('${post.id}', -1)">
           ${icons.dislike}
         </button>
-        <button class="action-btn" onclick="event.stopPropagation()">
+        <button class="action-btn comment-btn" data-post-id="${post.id}" onclick="event.stopPropagation(); window.handleComment('${post.id}')">
           ${icons.message}
           <span>${post.comments.length}</span>
         </button>
@@ -133,18 +147,66 @@ function createFeed() {
 
 function createFAB() {
   return `
-    <button class="create-post-btn" title="Crear nuevo post">
+    <button class="create-post-btn" id="createPostBtn" title="Crear nuevo post">
       ${icons.plus}
     </button>
   `;
 }
 
+window.handleVote = (postId, vote) => {
+  if (!isAuthenticated()) {
+    showRequireAuthCard('dar like a un post');
+    return;
+  }
+
+  const currentVote = userVotes[postId] || 0;
+  const post = posts.find(p => p.id === postId);
+
+  if (currentVote === vote) {
+    userVotes[postId] = 0;
+  } else {
+    userVotes[postId] = vote;
+  }
+
+  let displayVotes = post.votes + (userVotes[postId] === 1 ? 1 : 0);
+
+  const voteUpBtn = document.querySelector(`[data-post-id="${postId}"].vote-up`);
+  if (voteUpBtn) {
+    voteUpBtn.querySelector('span').textContent = displayVotes;
+  }
+
+  document.querySelectorAll(`[data-post-id="${postId}"].vote-up, [data-post-id="${postId}"].vote-down`).forEach(b => {
+    b.classList.remove('active');
+  });
+
+  if (userVotes[postId] !== 0) {
+    const activeBtn = document.querySelector(`[data-post-id="${postId}"][data-vote="${userVotes[postId]}"]`);
+    activeBtn?.classList.add('active');
+  }
+};
+
+window.handleComment = (postId) => {
+  if (!isAuthenticated()) {
+    showRequireAuthCard('comentar');
+    return;
+  }
+  console.log('Comment action for post:', postId);
+};
+
+window.handleCreatePost = () => {
+  if (!isAuthenticated()) {
+    showRequireAuthCard('crear un post');
+    return;
+  }
+  console.log('Create post action');
+};
+
 function renderPostDetail(postId) {
   const post = posts.find(p => p.id === postId);
   if (!post) return;
-  
+
   const voteState = userVotes[post.id] || 0;
-  
+
   const postDetail = `
     <div class="post-detail-container">
       <button class="back-btn" id="backBtn">
@@ -169,11 +231,11 @@ function renderPostDetail(postId) {
           </div>
         ` : ''}
         <div class="post-actions">
-          <button class="action-btn vote-up ${voteState === 1 ? 'active' : ''}" data-post-id="${post.id}" data-vote="1">
+          <button class="action-btn vote-up ${voteState === 1 ? 'active' : ''}" data-post-id="${post.id}" data-vote="1" onclick="window.handleVote('${post.id}', 1)">
             ${icons.like}
             <span>${post.votes + voteState}</span>
           </button>
-          <button class="action-btn vote-down ${voteState === -1 ? 'active' : ''}" data-post-id="${post.id}" data-vote="-1">
+          <button class="action-btn vote-down ${voteState === -1 ? 'active' : ''}" data-post-id="${post.id}" data-vote="-1" onclick="window.handleVote('${post.id}', -1)">
             ${icons.dislike}
           </button>
         </div>
@@ -195,7 +257,7 @@ function renderPostDetail(postId) {
       </div>
     </div>
   `;
-  
+
   const app = document.getElementById('app');
   app.innerHTML = createNavbar() + postDetail + createFAB();
   attachPostDetailEvents();
@@ -206,13 +268,23 @@ function attachPostDetailEvents() {
   backBtn?.addEventListener('click', () => {
     window.history.back();
   });
-  
+
+  attachCommonEvents();
+}
+
+function attachCommonEvents() {
   const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const userMenuBtn = document.getElementById('userMenuBtn');
+  const userDropdown = document.getElementById('userDropdown');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const loginBtn = document.getElementById('loginBtn');
+  const createPostBtn = document.getElementById('createPostBtn');
+
   themeToggleBtn?.addEventListener('click', () => {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     const isDark = newTheme === 'dark';
-    
+
     if (isDark) {
       document.documentElement.setAttribute('data-theme', 'dark');
       localStorage.setItem('theme', 'dark');
@@ -220,7 +292,7 @@ function attachPostDetailEvents() {
       document.documentElement.removeAttribute('data-theme');
       localStorage.setItem('theme', 'light');
     }
-    
+
     if (isDark) {
       themeToggleBtn.classList.add('dark');
     } else {
@@ -228,38 +300,31 @@ function attachPostDetailEvents() {
     }
     themeToggleBtn.querySelector('.theme-toggle-icon').innerHTML = isDark ? icons.moon : icons.sun;
   });
-  
-  document.querySelectorAll('.vote-up, .vote-down').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const postId = btn.dataset.postId;
-      const vote = parseInt(btn.dataset.vote);
-      const currentVote = userVotes[postId] || 0;
-      const post = posts.find(p => p.id === postId);
-      
-      if (currentVote === vote) {
-        userVotes[postId] = 0;
-      } else {
-        userVotes[postId] = vote;
-      }
-      
-      let displayVotes = post.votes + (userVotes[postId] === 1 ? 1 : 0);
-      
-      const voteUpBtn = document.querySelector(`[data-post-id="${postId}"].vote-up`);
-      if (voteUpBtn) {
-        voteUpBtn.querySelector('span').textContent = displayVotes;
-      }
-      
-      document.querySelectorAll(`[data-post-id="${postId}"].vote-up, [data-post-id="${postId}"].vote-down`).forEach(b => {
-        b.classList.remove('active');
-      });
-      
-      if (userVotes[postId] !== 0) {
-        btn.classList.add('active');
-      }
+
+  userMenuBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    userDropdown.classList.toggle('active');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.user-menu')) {
+      userDropdown?.classList.remove('active');
+    }
+  });
+
+  logoutBtn?.addEventListener('click', () => {
+    authLogout();
+    window.refreshUI();
+  });
+
+  loginBtn?.addEventListener('click', () => {
+    openLoginModal(null, () => {
+      openRegisterModal();
     });
   });
-  
+
+  createPostBtn?.addEventListener('click', window.handleCreatePost);
+
   const savedTheme = localStorage.getItem('theme');
   if (savedTheme === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
@@ -277,96 +342,27 @@ function render() {
 }
 
 function attachEventListeners() {
-  const userMenuBtn = document.getElementById('userMenuBtn');
-  const userDropdown = document.getElementById('userDropdown');
-  const themeToggleBtn = document.getElementById('themeToggleBtn');
-
-  userMenuBtn?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    userDropdown.classList.toggle('active');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.user-menu')) {
-      userDropdown?.classList.remove('active');
-    }
-  });
-
-  themeToggleBtn?.addEventListener('click', () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    const isDark = newTheme === 'dark';
-    
-    if (isDark) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'light');
-    }
-    
-    if (isDark) {
-      themeToggleBtn.classList.add('dark');
-    } else {
-      themeToggleBtn.classList.remove('dark');
-    }
-    themeToggleBtn.querySelector('.theme-toggle-icon').innerHTML = isDark ? icons.moon : icons.sun;
-  });
-
-  document.querySelectorAll('.vote-up, .vote-down').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const postId = btn.dataset.postId;
-      const vote = parseInt(btn.dataset.vote);
-      const currentVote = userVotes[postId] || 0;
-      const post = posts.find(p => p.id === postId);
-      
-      if (currentVote === vote) {
-        userVotes[postId] = 0;
-      } else {
-        userVotes[postId] = vote;
-      }
-      
-      let displayVotes = post.votes + (userVotes[postId] === 1 ? 1 : 0);
-      
-      const voteUpBtn = document.querySelector(`[data-post-id="${postId}"].vote-up`);
-      if (voteUpBtn) {
-        voteUpBtn.querySelector('span').textContent = displayVotes;
-      }
-      
-      document.querySelectorAll(`[data-post-id="${postId}"].vote-up, [data-post-id="${postId}"].vote-down`).forEach(b => {
-        b.classList.remove('active');
-      });
-      
-      if (userVotes[postId] !== 0) {
-        btn.classList.add('active');
-      }
-    });
-  });
-
-  document.querySelectorAll('.post-link').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const postId = btn.dataset.postId;
-      renderPostDetail(postId);
-    });
-  });
-
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    if (themeToggleBtn) {
-      themeToggleBtn.classList.add('dark');
-      themeToggleBtn.querySelector('.theme-toggle-icon').innerHTML = icons.moon;
-    }
-  }
+  attachCommonEvents();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+window.refreshUI = () => {
+  render();
+};
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await initAuth();
+
+  onAuthChange(() => {
+    if (typeof window.refreshUI === 'function') {
+      window.refreshUI();
+    }
+  });
+
   window.openPost = (postId) => {
     window.history.pushState({ postId }, '', `#post/${postId}`);
     renderPostDetail(postId);
   };
-  
+
   window.addEventListener('popstate', (event) => {
     if (event.state && event.state.postId) {
       renderPostDetail(event.state.postId);
@@ -374,6 +370,6 @@ document.addEventListener('DOMContentLoaded', () => {
       render();
     }
   });
-  
+
   render();
 });

@@ -33,7 +33,20 @@ public class AuthController {
             Map<String, Object> response = authService.login(request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
-            // 401 Unauthorized para errores de credenciales
+            return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser(@RequestHeader("Authorization") String authHeader) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(401).body(Map.of("error", "Token no proporcionado"));
+            }
+            String token = authHeader.substring(7);
+            Map<String, Object> response = authService.getCurrentUser(token);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
             return ResponseEntity.status(401).body(Map.of("error", e.getMessage()));
         }
     }
