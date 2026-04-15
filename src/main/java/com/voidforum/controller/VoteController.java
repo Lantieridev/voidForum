@@ -27,7 +27,31 @@ public class VoteController {
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
             voteService.toggleVote(targetId, user.getId(), value);
-            return ResponseEntity.ok().build();
+            int newCount = voteService.getPostVoteCount(targetId);
+            return ResponseEntity.ok(Map.of("votes", newCount));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/user")
+    public ResponseEntity<?> getUserVotes(Principal principal) {
+        try {
+            String username = principal.getName();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+            Map<String, Object> response = voteService.getUserVotedPosts(user.getId());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{targetId}/count")
+    public ResponseEntity<?> getVoteCount(@PathVariable String targetId) {
+        try {
+            int count = voteService.getPostVoteCount(targetId);
+            return ResponseEntity.ok(Map.of("votes", count));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }

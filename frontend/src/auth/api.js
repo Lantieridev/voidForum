@@ -57,6 +57,14 @@ export const authApi = {
   getCurrentUser: async () => {
     return request('/auth/me');
   },
+
+  getCurrentUserProfile: async () => {
+    return request('/users/me');
+  },
+
+  getUserById: async (id) => {
+    return request(`/users/${id}`);
+  },
 };
 
 export const postsApi = {
@@ -116,6 +124,14 @@ export const votesApi = {
     return request(`/votes/${targetId}?value=${value}`, {
       method: 'POST',
     });
+  },
+
+  getUserVotedPosts: async () => {
+    return request('/votes/user');
+  },
+
+  getPostVoteCount: async (targetId) => {
+    return request(`/votes/${targetId}/count`);
   },
 };
 
