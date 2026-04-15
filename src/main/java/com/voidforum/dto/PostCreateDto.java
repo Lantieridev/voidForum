@@ -9,7 +9,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class PostCreateDto {
-    private String title;
     private String content;
     private List<String> tags;
 }

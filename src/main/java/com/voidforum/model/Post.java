@@ -16,19 +16,19 @@ public class Post {
     @Id
     private String id;
 
-    @TextIndexed(weight = 2) // Índice de texto para el buscador
-    private String title;
-
-    @TextIndexed(weight = 1) // Índice de texto para el buscador
+    @TextIndexed(weight = 1)
     private String content;
 
-    @Indexed // Acelera filtrar por autor
+    @Indexed
     private String authorUsername;
 
     private String authorId;
 
-    @Indexed // Acelera filtrar por categorías/tags
+    @Indexed
     private List<String> tags;
 
     private LocalDateTime createdAt;
+
+    @Builder.Default
+    private Integer voteCount = 0;
 }

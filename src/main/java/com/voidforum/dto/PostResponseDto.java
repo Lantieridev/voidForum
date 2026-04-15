@@ -5,10 +5,10 @@ import java.util.List;
 
 public record PostResponseDto(
         String id,
-        String title,
         String content,
         String authorUsername,
+        String authorId,
         List<String> tags,
-        int voteCount, // <--- Nuevo campo
+        int voteCount,
         LocalDateTime createdAt
 ) {}

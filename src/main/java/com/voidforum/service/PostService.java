@@ -31,7 +31,6 @@ public class PostService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         Post post = Post.builder()
-                .title(request.getTitle())
                 .content(request.getContent())
                 .tags(request.getTags())
                 .authorId(author.getId())
@@ -57,7 +56,6 @@ public class PostService {
         }
 
         // Actualización de campos
-        post.setTitle(postRequest.getTitle());
         post.setContent(postRequest.getContent());
         post.setTags(postRequest.getTags());
 
@@ -81,20 +79,14 @@ public class PostService {
     }
 
     private PostResponseDto mapToResponseDto(Post post) {
-        // Calculamos el puntaje total sumando los valores de los votos vinculados
-        int score = voteRepository.findAllByTargetId(post.getId())
-                .stream()
-                .mapToInt(Vote::getValue)
-                .sum();
-
         return new PostResponseDto(
                 post.getId(),
-                post.getTitle(),
-                post.getContent(),
-                post.getAuthorUsername(),
-                post.getTags(),
-                score, // <--- El contador dinámico
-                post.getCreatedAt()
+                post.getContent() != null ? post.getContent() : "",
+                post.getAuthorUsername() != null ? post.getAuthorUsername() : "Unknown",
+                post.getAuthorId() != null ? post.getAuthorId() : "",
+                post.getTags() != null ? post.getTags() : java.util.List.of(),
+                post.getVoteCount() != null ? post.getVoteCount() : 0,
+                post.getCreatedAt() != null ? post.getCreatedAt() : java.time.LocalDateTime.now()
         );
     }
 }

@@ -121,7 +121,8 @@ export const posts = [
 ];
 
 export function formatTimeAgo(date) {
-  const seconds = Math.floor((new Date() - date) / 1000);
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  const seconds = Math.floor((new Date() - dateObj) / 1000);
   
   if (seconds < 60) return 'ahora';
   
@@ -134,7 +135,7 @@ export function formatTimeAgo(date) {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d`;
   
-  return date.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+  return dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 }
 
 export function getInitials(name) {
