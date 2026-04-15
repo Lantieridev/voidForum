@@ -1,6 +1,13 @@
 package com.voidforum.dto;
 
-public record CommentCreateDto(
-        String content,
-        String postId
-) {}
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CommentCreateDto {
+    private String content;
+    private String postId;
+}

@@ -12,6 +12,7 @@ import com.voidforum.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,9 +31,9 @@ public class PostService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         Post post = Post.builder()
-                .title(request.title())
-                .content(request.content())
-                .tags(request.tags())
+                .title(request.getTitle())
+                .content(request.getContent())
+                .tags(request.getTags())
                 .authorId(author.getId())
                 .authorUsername(author.getUsername())
                 .createdAt(LocalDateTime.now())
@@ -45,6 +46,23 @@ public class PostService {
         return postRepository.findAll().stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
+    }
+    public PostResponseDto updatePost(String id, PostCreateDto postRequest, String currentUsername) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
+
+        // Seguridad: Solo el autor edita
+        if (!post.getAuthorUsername().equals(currentUsername)) {
+            throw new RuntimeException("No tenés permiso para editar este post");
+        }
+
+        // Actualización de campos
+        post.setTitle(postRequest.getTitle());
+        post.setContent(postRequest.getContent());
+        post.setTags(postRequest.getTags());
+
+        Post updatedPost = postRepository.save(post);
+        return mapToResponseDto(updatedPost);
     }
 
     public void deletePost(String postId, String username) {

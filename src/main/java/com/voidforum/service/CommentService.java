@@ -23,16 +23,16 @@ public class CommentService {
     private final UserRepository userRepository;
 
     public CommentResponseDto createComment(CommentCreateDto request, String username) {
-        if (!postRepository.existsById(request.postId())) {
-            throw new RuntimeException("Error: El post al que intentas comentar no existe.");
+        if (!postRepository.existsById(request.getPostId())) {
+            throw new RuntimeException("Error: El post al que intentás comentar no existe.");
         }
 
         User author = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Error: Usuario no encontrado."));
 
         Comment comment = Comment.builder()
-                .content(request.content())
-                .postId(request.postId())
+                .content(request.getContent())
+                .postId(request.getPostId())
                 .authorId(author.getId())
                 .authorUsername(author.getUsername())
                 .createdAt(LocalDateTime.now())
@@ -67,5 +67,20 @@ public class CommentService {
                 comment.getPostId(),
                 comment.getCreatedAt()
         );
+    }
+
+    public CommentResponseDto updateComment(String id, CommentCreateDto commentRequest, String currentUsername) {
+        Comment comment = commentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Comentario no encontrado"));
+
+        if (!comment.getAuthorUsername().equals(currentUsername)) {
+            throw new RuntimeException("No tenés permiso para editar este comentario");
+        }
+
+        comment.setContent(commentRequest.getContent());
+        Comment updatedComment = commentRepository.save(comment);
+
+        // Aquí usá tu método de mapeo a ResponseDto si lo tenés
+        return mapToResponseDto(updatedComment);
     }
 }

@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import java.security.Principal;
 
 @RestController
 @RequestMapping("/api/votes")
@@ -14,13 +15,15 @@ public class VoteController {
     private final VoteService voteService;
 
     @PostMapping("/{targetId}")
-    public ResponseEntity<String> vote(
+    public ResponseEntity<Void> vote(
             @PathVariable String targetId,
-            @RequestParam int value) { // Mandamos 1 o -1
+            @RequestParam int value,
+            Principal principal) {
 
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        voteService.vote(targetId, value, username);
+        // Buscamos el ID del usuario (o username) según cómo lo manejes
+        String userId = principal.getName();
+        voteService.toggleVote(targetId, userId, value);
 
-        return ResponseEntity.ok("Voto registrado correctamente");
+        return ResponseEntity.ok().build();
     }
 }

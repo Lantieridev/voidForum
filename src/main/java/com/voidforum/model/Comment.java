@@ -3,6 +3,7 @@ package com.voidforum.model;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.time.LocalDateTime;
 
@@ -13,8 +14,11 @@ public class Comment {
     @Id
     private String id;
     private String content;
-    private String postId;       // Relación con el Post
-    private String authorId;     // ID del usuario que comenta
+
+    @Indexed // Acelera la carga de hilos de conversación
+    private String postId;
+
+    private String authorId;
     private String authorUsername;
     private LocalDateTime createdAt;
 }
