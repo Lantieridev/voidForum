@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Map;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Service
 @RequiredArgsConstructor
@@ -16,24 +17,22 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final BCryptPasswordEncoder passwordEncoder; // <--- Nueva inyección
 
     public UserResponseDto register(UserRegisterDto request) {
-        // Validar si el username ya está en uso
         if (userRepository.findByUsername(request.username()).isPresent()) {
             throw new RuntimeException("El nombre de usuario ya existe");
         }
 
-        // Mapear de DTO a Entidad (User) usando el Builder de Lombok
         User user = User.builder()
                 .username(request.username())
                 .email(request.email())
-                .password(request.password()) // NOTA: Aquí iría el BCrypt más adelante
+                .password(passwordEncoder.encode(request.password())) // <--- ENCRIPTAMOS ACÁ
                 .createdAt(LocalDateTime.now())
                 .build();
 
         User savedUser = userRepository.save(user);
 
-        // Retornar el DTO de respuesta (sin la password)
         return new UserResponseDto(
                 savedUser.getId(),
                 savedUser.getUsername(),
@@ -43,19 +42,16 @@ public class AuthService {
     }
 
     public Map<String, Object> login(UserLoginDto request) {
-        // Buscar el usuario o lanzar error si no existe
         User user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // Comparar contraseñas
-        if (!user.getPassword().equals(request.password())) {
+        // <--- CAMBIO IMPORTANTE: Usamos matches() porque la clave de la DB está hasheada
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new RuntimeException("Contraseña incorrecta");
         }
 
-        // Generar el Token JWT
         String token = jwtService.generateToken(user.getUsername());
 
-        // Devolver el token y los datos del usuario en un Map
         return Map.of(
                 "token", token,
                 "user", new UserResponseDto(
