@@ -6,6 +6,7 @@ import com.voidforum.repository.VoteRepository;
 import com.voidforum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 @Service
@@ -19,32 +20,29 @@ public class VoteService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // Buscamos si ya existe un voto de este usuario para este post/comentario
         Vote vote = voteRepository.findByUserIdAndTargetId(user.getId(), targetId)
                 .orElse(Vote.builder()
                         .userId(user.getId())
                         .targetId(targetId)
                         .build());
 
-        vote.setValue(value); // Actualizamos el valor (1 o -1)
+        vote.setValue(value);
         voteRepository.save(vote);
     }
+
+    @Transactional
     public void toggleVote(String targetId, String userId, int newValue) {
-        // Buscamos si ya existe un voto de este usuario para este post
         Optional<Vote> existingVote = voteRepository.findByUserIdAndTargetId(userId, targetId);
 
         if (existingVote.isPresent()) {
             Vote vote = existingVote.get();
             if (vote.getValue() == newValue) {
-                // Caso 1: El usuario tocó el mismo botón -> BORRAMOS EL VOTO
                 voteRepository.delete(vote);
             } else {
-                // Caso 2: El usuario cambió de parecer (de +1 a -1 o viceversa) -> ACTUALIZAMOS
                 vote.setValue(newValue);
                 voteRepository.save(vote);
             }
         } else {
-            // Caso 3: No hay voto previo -> CREAMOS UNO NUEVO
             Vote newVote = Vote.builder()
                     .userId(userId)
                     .targetId(targetId)

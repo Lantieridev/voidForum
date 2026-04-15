@@ -62,4 +62,24 @@ public class AuthService {
                 )
         );
     }
+
+    public Map<String, Object> getCurrentUser(String token) {
+        if (!jwtService.validateToken(token)) {
+            throw new RuntimeException("Token inválido o expirado");
+        }
+
+        String username = jwtService.extractUsername(token);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        return Map.of(
+                "token", token,
+                "user", new UserResponseDto(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getEmail(),
+                        user.getCreatedAt()
+                )
+        );
+    }
 }

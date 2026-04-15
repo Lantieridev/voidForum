@@ -1,10 +1,3 @@
-export const currentUser = {
-  id: 'user-1',
-  username: 'ornella_dev',
-  displayName: 'Ornella',
-  avatar: null
-};
-
 export const posts = [
   {
     id: 'post-1',
