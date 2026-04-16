@@ -24,7 +24,7 @@ public class CommentController {
 
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<?> getComments(@PathVariable String postId) {
-        List<CommentResponseDto> comments = commentService.getCommentsByPost(postId);
+        List<CommentResponseDto> comments = commentService.getCommentsByPost(postId, null);
         return ResponseEntity.ok(comments);
     }
 
@@ -39,6 +39,7 @@ public class CommentController {
             CommentCreateDto dto = new CommentCreateDto();
             dto.setContent(request.get("content"));
             dto.setPostId(postId);
+            dto.setParentCommentId(request.get("parentCommentId"));
             CommentResponseDto comment = commentService.createComment(dto, username);
             return ResponseEntity.ok(comment);
         } catch (RuntimeException e) {

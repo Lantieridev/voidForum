@@ -4,7 +4,6 @@ import { openLoginModal } from './auth/LoginModal.js';
 import { openRegisterModal } from './auth/RegisterModal.js';
 import { openConfirmModal } from './auth/ConfirmModal.js';
 import { showRequireAuthCard } from './auth/requireAuth.js';
-import { openConfirmModal } from './auth/ConfirmModal.js';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 import { authApi, votesApi, postsApi, commentsApi } from './auth/api.js';

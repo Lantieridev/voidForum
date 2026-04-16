@@ -154,7 +154,7 @@ public class VoteService {
     public Map<String, Object> cleanupDuplicateVotes() {
         List<Vote> allVotes = voteRepository.findAll();
         Map<String, List<Vote>> groupedVotes = allVotes.stream()
-                .collect(Collectors.groupingBy(v -> v.getUserId() + "_" + v.getTargetId()));
+                .collect(Collectors.groupingBy(v -> v.getUserId() + "_" + v.getTargetId() + "_" + v.getTargetType()));
 
         int duplicatesRemoved = 0;
         for (Map.Entry<String, List<Vote>> entry : groupedVotes.entrySet()) {
