@@ -2,12 +2,26 @@ import { posts, formatTimeAgo, getInitials } from './data.js';
 import { init as initAuth, onAuthChange, logout as authLogout, isAuthenticated, getUser } from './auth/authManager.js';
 import { openLoginModal } from './auth/LoginModal.js';
 import { openRegisterModal } from './auth/RegisterModal.js';
+import { openConfirmModal } from './auth/ConfirmModal.js';
 import { showRequireAuthCard } from './auth/requireAuth.js';
 
 const API_BASE_URL = 'http://localhost:8080/api';
-import { authApi, votesApi, postsApi } from './auth/api.js';
+import { authApi, votesApi, postsApi, commentsApi } from './auth/api.js';
 import { openCreatePostModal } from './posts/CreatePostModal.js';
 import { openEditPostModal } from './posts/EditPostModal.js';
+import { openSettingsModal } from './settings/SettingsModal.js';
+
+function updateCommentCount(postId, increment = true) {
+  const post = posts.find(p => p.id === postId);
+  if (post) {
+    post.commentCount = post.commentCount || 0;
+    post.commentCount = increment ? post.commentCount + 1 : Math.max(0, post.commentCount - 1);
+    const commentBtn = document.querySelector(`.comment-btn[data-post-id="${postId}"]`);
+    if (commentBtn) {
+      commentBtn.querySelector('span').textContent = post.commentCount;
+    }
+  }
+}
 
 const icons = {
   logo: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`,
@@ -223,7 +237,7 @@ function createPostCard(post, showActions = true) {
           </button>
           <button class="action-btn comment-btn" data-post-id="${post.id}" onclick="event.stopPropagation(); window.handleComment('${post.id}')">
             ${icons.message}
-            <span>0</span>
+            <span>${post.commentCount || 0}</span>
           </button>
           <button class="action-btn save-btn ${isSaved ? 'active' : ''}" data-post-id="${post.id}" onclick="event.stopPropagation(); window.handleSave('${post.id}')">
             ${isSaved ? icons.bookmarkFilled : icons.bookmark}
@@ -692,14 +706,14 @@ window.handleVote = async (postId, vote) => {
   updateVoteUI(postId);
 
   try {
-    const { votes } = await votesApi.vote(postId, userVotes[postId]);
+    const { voteCount } = await votesApi.vote(postId, userVotes[postId]);
     const voteUpBtn = document.querySelector(`[data-post-id="${postId}"].vote-up`);
     if (voteUpBtn) {
-      voteUpBtn.querySelector('span').textContent = votes;
+      voteUpBtn.querySelector('span').textContent = voteCount;
     }
     const post = posts.find(p => p.id === postId);
     if (post) {
-      post.voteCount = votes;
+      post.voteCount = voteCount;
     }
 
     const likedIndex = userVotedPosts.findIndex(p => p.id === postId);
@@ -733,68 +747,192 @@ function updateVoteUI(postId) {
   }
 }
 
-window.handleComment = (postId) => {
+window.handleComment = async (postId) => {
   if (!isAuthenticated()) {
     showRequireAuthCard('comentar');
     return;
   }
-  console.log('Comment action for post:', postId);
+
+  const input = document.getElementById('commentInput');
+  if (!input) {
+    window.openPost(postId);
+    return;
+  }
+
+  const content = input.value.trim();
+
+  if (!content) return;
+
+  const submitBtn = document.getElementById('commentSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Enviando...';
+
+  try {
+    await commentsApi.create(postId, content);
+    input.value = '';
+    updateCommentCount(postId, true);
+
+    if (typeof window.refreshPostComments === 'function') {
+      await window.refreshPostComments(postId);
+    }
+  } catch (error) {
+    console.error('Error creating comment:', error);
+    alert('Error al crear comentario: ' + (error.message || 'Error desconocido'));
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Comentar';
+  }
 };
 
-window.handleSave = async (postId) => {
+window.handleReplyComment = async (postId, parentCommentId) => {
   if (!isAuthenticated()) {
-    showRequireAuthCard('guardar un post');
+    showRequireAuthCard('responder');
+    return;
+  }
+
+  const input = document.getElementById(`replyInput-${parentCommentId}`);
+  const content = input.value.trim();
+
+  if (!content) return;
+
+  const submitBtn = document.getElementById(`replySubmit-${parentCommentId}`);
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Enviando...';
+
+  try {
+    await commentsApi.create(postId, content, parentCommentId);
+    input.value = '';
+
+    if (typeof window.refreshPostComments === 'function') {
+      await window.refreshPostComments(postId);
+    }
+  } catch (error) {
+    console.error('Error creating reply:', error);
+    alert('Error al crear respuesta: ' + (error.message || 'Error desconocido'));
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Responder';
+  }
+};
+
+window.handleDeleteComment = async (commentId, postId) => {
+  if (!isAuthenticated()) {
+    showRequireAuthCard('eliminar comentario');
+    return;
+  }
+
+  openConfirmModal('¿Estás seguro de que querés eliminar este comentario?', async () => {
+    try {
+      await commentsApi.delete(commentId);
+      updateCommentCount(postId, false);
+
+      if (typeof window.refreshPostComments === 'function') {
+        await window.refreshPostComments(postId);
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      alert('Error al eliminar comentario: ' + (error.message || 'Error desconocido'));
+    }
+  });
+};
+
+window.toggleCommentVote = async (commentId, value, postId) => {
+  if (!isAuthenticated()) {
+    showRequireAuthCard('votar');
     return;
   }
 
   try {
-    const isCurrentlySaved = userSavedPosts[postId] || false;
-    const method = isCurrentlySaved ? 'DELETE' : 'POST';
-    const response = await fetch(`${API_BASE_URL}/users/saved/${postId}`, {
-      method: method,
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    await votesApi.vote(commentId, value, 'comment');
 
-    if (response.ok) {
-      const data = await response.json();
-      userSavedPosts[postId] = data.saved;
-      
-      const post = posts.find(p => p.id === postId);
-      if (post) {
-        if (data.saved) {
-          const exists = savedPosts.find(p => p.id === postId);
-          if (!exists) {
-            savedPosts.push({...post});
-          }
-        } else {
-          const idx = savedPosts.findIndex(p => p.id === postId);
-          if (idx !== -1) {
-            savedPosts.splice(idx, 1);
-          }
-        }
-      }
-      
-      const saveBtn = document.querySelector(`.save-btn[data-post-id="${postId}"]`);
-      if (saveBtn) {
-        const saveIcon = saveBtn.querySelector('svg');
-        if (saveIcon) {
-          saveIcon.outerHTML = (data.saved ? icons.bookmarkFilled : icons.bookmark);
-        }
-        const countSpan = saveBtn.querySelector('span');
-        if (countSpan) {
-          countSpan.textContent = data.savedCount || 0;
-        }
-        saveBtn.classList.toggle('active', data.saved);
-      }
-
-      if (currentView === 'profile' && currentProfileTab === 'saved') {
-        updateProfileContent();
-      }
+    if (typeof window.refreshPostComments === 'function') {
+      await window.refreshPostComments(postId);
     }
   } catch (error) {
-    console.error('Error saving post:', error);
+    console.error('Error voting comment:', error);
+  }
+};
+
+let currentComments = [];
+
+function renderComments(postId) {
+  if (!currentComments || currentComments.length === 0) {
+    return '<p class="no-comments">No hay comentarios aún. ¡Sé el primero en comentar!</p>';
+  }
+
+  return currentComments.map(comment => createCommentCard(comment, postId)).join('');
+}
+
+function createCommentCard(comment, postId) {
+  const currentUser = window.currentUser;
+  const isAuthor = currentUser && currentUser.username === comment.authorUsername;
+  const userVote = comment.userVote || 0;
+
+  const repliesHtml = comment.replies && comment.replies.length > 0
+    ? `<div class="comment-replies">${comment.replies.map(reply => createCommentCard(reply, postId)).join('')}</div>`
+    : '';
+
+  return `
+    <div class="comment" data-comment-id="${comment.id}">
+      <div class="comment-avatar">${getInitials(comment.authorUsername)}</div>
+      <div class="comment-body">
+        <div class="comment-header">
+          <span class="comment-username">${comment.authorUsername}</span>
+          <span class="comment-time">${formatTimeAgo(comment.createdAt)}</span>
+        </div>
+        <p class="comment-text">${comment.content}</p>
+        <div class="comment-actions">
+          <button class="comment-action vote-up ${userVote === 1 ? 'active' : ''}" onclick="event.stopPropagation(); window.toggleCommentVote('${comment.id}', 1, '${postId}')">
+            ${icons.like}
+            <span>${comment.voteCount || 0}</span>
+          </button>
+          <button class="comment-action vote-down ${userVote === -1 ? 'active' : ''}" onclick="event.stopPropagation(); window.toggleCommentVote('${comment.id}', -1, '${postId}')">
+            ${icons.dislike}
+          </button>
+          <button class="comment-action reply-btn" onclick="event.stopPropagation(); window.toggleReplyForm('${comment.id}')">
+            ${icons.message}
+            <span>Responder</span>
+          </button>
+          ${isAuthor ? `
+            <button class="comment-action delete-btn" onclick="event.stopPropagation(); window.handleDeleteComment('${comment.id}', '${postId}')">
+              ${icons.trash}
+            </button>
+          ` : ''}
+        </div>
+        <div class="reply-form" id="replyForm-${comment.id}" style="display: none;">
+          <textarea
+            id="replyInput-${comment.id}"
+            class="reply-input"
+            placeholder="Escribí una respuesta..."
+            rows="2"
+          ></textarea>
+          <button class="reply-submit-btn" id="replySubmit-${comment.id}" onclick="window.handleReplyComment('${postId}', '${comment.id}')">
+            Responder
+          </button>
+        </div>
+        ${repliesHtml}
+      </div>
+    </div>
+  `;
+}
+
+window.toggleReplyForm = (commentId) => {
+  const form = document.getElementById(`replyForm-${commentId}`);
+  if (form) {
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  }
+};
+
+window.refreshPostComments = async (postId) => {
+  try {
+    const comments = await commentsApi.getByPost(postId);
+    currentComments = comments;
+    const container = document.getElementById('commentsList');
+    if (container) {
+      container.innerHTML = renderComments(postId);
+    }
+  } catch (error) {
+    console.error('Error loading comments:', error);
   }
 };
 
@@ -881,20 +1019,19 @@ window.handleDeletePost = async (postId) => {
     return;
   }
   
-  const confirmed = confirm('¿Estás seguro de que querés eliminar este post?');
-  if (!confirmed) return;
-  
-  try {
-    await postsApi.delete(postId);
-    posts.splice(posts.findIndex(p => p.id === postId), 1);
-    
-    if (typeof window.refreshPosts === 'function') {
-      window.refreshPosts();
+  openConfirmModal('¿Estás seguro de que querés eliminar este post?', async () => {
+    try {
+      await postsApi.delete(postId);
+      posts.splice(posts.findIndex(p => p.id === postId), 1);
+      
+      if (typeof window.refreshPosts === 'function') {
+        window.refreshPosts();
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Error al eliminar el post: ' + (error.message || 'Error desconocido'));
     }
-  } catch (error) {
-    console.error('Error deleting post:', error);
-    alert('Error al eliminar el post: ' + (error.message || 'Error desconocido'));
-  }
+  });
 };
 
 window.navigateTo = (view) => {
@@ -947,20 +1084,23 @@ function renderPostDetail(postId) {
           </button>
         </div>
       </article>
-      <div class="comments-container">
-        <h3 class="comments-title">Comentarios (${post.comments?.length || 0})</h3>
-        ${post.comments?.length > 0 ? post.comments.map(comment => `
-          <div class="comment">
-            <div class="comment-avatar">${getInitials(comment.user?.displayName || comment.user?.username || 'U')}</div>
-            <div class="comment-content">
-              <div class="comment-header">
-                <span class="comment-username">${comment.user?.displayName || comment.user?.username || 'Usuario'}</span>
-                <span class="comment-time">${formatTimeAgo(comment.createdAt)}</span>
-              </div>
-              <p class="comment-text">${comment.content}</p>
-            </div>
-          </div>
-        `).join('') : '<p class="no-comments">No hay comentarios aún.</p>'}
+
+      <div class="comments-section expanded">
+        <div class="comment-form">
+          <textarea
+            id="commentInput"
+            class="comment-input"
+            placeholder="Escribí un comentario..."
+            rows="2"
+          ></textarea>
+          <button class="comment-submit-btn" id="commentSubmitBtn" onclick="window.handleComment('${post.id}')">
+            Comentar
+          </button>
+        </div>
+
+        <div class="comments-list" id="commentsList">
+          ${renderComments(post.id)}
+        </div>
       </div>
     </div>
   `;
@@ -969,6 +1109,8 @@ function renderPostDetail(postId) {
   app.innerHTML = createNavbar() + postDetail + createFAB();
   attachPostDetailEvents();
   attachScrollListener();
+
+  window.refreshPostComments(postId);
 }
 
 function attachPostDetailEvents() {
@@ -1032,7 +1174,7 @@ function attachCommonEvents() {
     const userMenu = document.querySelector('.user-menu');
     userDropdown?.classList.remove('active');
     userMenu?.classList.remove('active');
-    console.log('Settings clicked');
+    openSettingsModal();
   });
 
   viewProfileBtn?.addEventListener('click', () => {
