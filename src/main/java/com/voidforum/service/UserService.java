@@ -106,4 +106,63 @@ public class UserService {
         user.setPassword(null);
         userRepository.save(user);
     }
+
+    public void follow(String currentUsername, String targetUserId) {
+        User currentUser = findByUsername(currentUsername);
+        User targetUser = findById(targetUserId);
+
+        if (currentUser.getId().equals(targetUserId)) {
+            throw new RuntimeException("No puedes seguirte a ti mismo");
+        }
+
+        if (currentUser.getFollowingIds() == null) {
+            currentUser.setFollowingIds(new java.util.ArrayList<>());
+        }
+
+        if (currentUser.getFollowingIds().contains(targetUserId)) {
+            throw new RuntimeException("Ya sigues a este usuario");
+        }
+
+        currentUser.getFollowingIds().add(targetUserId);
+        currentUser.setFollowingCount(currentUser.getFollowingCount() + 1);
+        userRepository.save(currentUser);
+
+        targetUser.setFollowerCount(targetUser.getFollowerCount() + 1);
+        userRepository.save(targetUser);
+    }
+
+    public void unfollow(String currentUsername, String targetUserId) {
+        User currentUser = findByUsername(currentUsername);
+        User targetUser = findById(targetUserId);
+
+        if (currentUser.getFollowingIds() == null || !currentUser.getFollowingIds().contains(targetUserId)) {
+            throw new RuntimeException("No sigues a este usuario");
+        }
+
+        currentUser.getFollowingIds().remove(targetUserId);
+        currentUser.setFollowingCount(Math.max(0, currentUser.getFollowingCount() - 1));
+        userRepository.save(currentUser);
+
+        targetUser.setFollowerCount(Math.max(0, targetUser.getFollowerCount() - 1));
+        userRepository.save(targetUser);
+    }
+
+    public boolean isFollowing(String currentUsername, String targetUserId) {
+        User currentUser = findByUsername(currentUsername);
+        return currentUser.getFollowingIds() != null && currentUser.getFollowingIds().contains(targetUserId);
+    }
+
+    public List<User> getFollowers(String userId) {
+        return userRepository.findByFollowingId(userId);
+    }
+
+    public List<User> getFollowing(String userId) {
+        User user = findById(userId);
+        return userRepository.findAllById(user.getFollowingIds());
+    }
+
+    public List<String> getFollowingIds(String username) {
+        User user = findByUsername(username);
+        return user.getFollowingIds() != null ? user.getFollowingIds() : new java.util.ArrayList<>();
+    }
 }

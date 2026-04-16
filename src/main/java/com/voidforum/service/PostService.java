@@ -70,6 +70,18 @@ public class PostService {
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }
+
+    public List<PostResponseDto> getFeed(List<String> followingIds) {
+        return postRepository.findByAuthorIdIn(followingIds).stream()
+                .sorted((p1, p2) -> {
+                    if (p1.getCreatedAt() == null) return 1;
+                    if (p2.getCreatedAt() == null) return -1;
+                    return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                })
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
+    }
+
     public PostResponseDto updatePost(String id, PostCreateDto postRequest, String currentUsername) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post no encontrado"));
