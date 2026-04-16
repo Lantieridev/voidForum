@@ -1615,7 +1615,7 @@ window.showMyFollowing = () => {
 function userFollowersModal(users, title = 'Usuarios') {
   const usersHtml = users && users.length > 0 
     ? users.map(u => `
-        <div class="user-list-item" onclick="window.navigateToUser('${u.id}')">
+        <div class="user-list-item" onclick="closeUserListModal(); window.navigateToUser('${u.id}')">
           <div class="user-list-avatar">${getInitials(u.displayName || u.username)}</div>
           <div class="user-list-info">
             <div class="user-list-name">${u.displayName || u.username}</div>
@@ -1632,7 +1632,7 @@ function userFollowersModal(users, title = 'Usuarios') {
     <div class="modal-content">
       <div class="modal-header">
         <h3>${title}</h3>
-        <button class="modal-close" onclick="document.getElementById('userListModal').remove()">×</button>
+        <button class="modal-close" onclick="closeUserListModal()">×</button>
       </div>
       <div class="modal-body">
         ${usersHtml}
@@ -1640,6 +1640,13 @@ function userFollowersModal(users, title = 'Usuarios') {
     </div>
   `;
   document.body.appendChild(modal);
+}
+
+function closeUserListModal() {
+  const modal = document.getElementById('userListModal');
+  if (modal) {
+    modal.remove();
+  }
 }
 
 window.quickFollow = async (userId, username) => {
