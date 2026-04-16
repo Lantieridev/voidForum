@@ -2,6 +2,7 @@ import { posts, formatTimeAgo, getInitials } from './data.js';
 import { init as initAuth, onAuthChange, logout as authLogout, isAuthenticated, getUser } from './auth/authManager.js';
 import { openLoginModal } from './auth/LoginModal.js';
 import { openRegisterModal } from './auth/RegisterModal.js';
+import { openConfirmModal } from './auth/ConfirmModal.js';
 import { showRequireAuthCard } from './auth/requireAuth.js';
 import { authApi, votesApi, postsApi, commentsApi } from './auth/api.js';
 import { openCreatePostModal } from './posts/CreatePostModal.js';
@@ -701,20 +702,19 @@ window.handleDeleteComment = async (commentId, postId) => {
     return;
   }
 
-  const confirmed = confirm('¿Estás seguro de que querés eliminar este comentario?');
-  if (!confirmed) return;
+  openConfirmModal('¿Estás seguro de que querés eliminar este comentario?', async () => {
+    try {
+      await commentsApi.delete(commentId);
+      updateCommentCount(postId, false);
 
-  try {
-    await commentsApi.delete(commentId);
-    updateCommentCount(postId, false);
-
-    if (typeof window.refreshPostComments === 'function') {
-      await window.refreshPostComments(postId);
+      if (typeof window.refreshPostComments === 'function') {
+        await window.refreshPostComments(postId);
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      alert('Error al eliminar comentario: ' + (error.message || 'Error desconocido'));
     }
-  } catch (error) {
-    console.error('Error deleting comment:', error);
-    alert('Error al eliminar comentario: ' + (error.message || 'Error desconocido'));
-  }
+  });
 };
 
 window.toggleCommentVote = async (commentId, value, postId) => {
@@ -843,20 +843,19 @@ window.handleDeletePost = async (postId) => {
     return;
   }
   
-  const confirmed = confirm('¿Estás seguro de que querés eliminar este post?');
-  if (!confirmed) return;
-  
-  try {
-    await postsApi.delete(postId);
-    posts.splice(posts.findIndex(p => p.id === postId), 1);
-    
-    if (typeof window.refreshPosts === 'function') {
-      window.refreshPosts();
+  openConfirmModal('¿Estás seguro de que querés eliminar este post?', async () => {
+    try {
+      await postsApi.delete(postId);
+      posts.splice(posts.findIndex(p => p.id === postId), 1);
+      
+      if (typeof window.refreshPosts === 'function') {
+        window.refreshPosts();
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Error al eliminar el post: ' + (error.message || 'Error desconocido'));
     }
-  } catch (error) {
-    console.error('Error deleting post:', error);
-    alert('Error al eliminar el post: ' + (error.message || 'Error desconocido'));
-  }
+  });
 };
 
 window.navigateTo = (view) => {
