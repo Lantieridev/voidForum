@@ -3,48 +3,81 @@ package com.voidforum.controller;
 import com.voidforum.dto.CommentCreateDto;
 import com.voidforum.dto.CommentResponseDto;
 import com.voidforum.service.CommentService;
+import com.voidforum.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import java.security.Principal;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/comments")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class CommentController {
 
     private final CommentService commentService;
+    private final JwtService jwtService;
 
-    @PostMapping
-    public ResponseEntity<CommentResponseDto> createComment(@RequestBody CommentCreateDto request) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return ResponseEntity.status(201).body(commentService.createComment(request, username));
+    public record CreateCommentRequest(String content) {}
+
+    @GetMapping("/posts/{postId}/comments")
+    public ResponseEntity<?> getComments(@PathVariable String postId) {
+        List<CommentResponseDto> comments = commentService.getCommentsByPost(postId);
+        return ResponseEntity.ok(comments);
     }
 
-    @GetMapping("/post/{postId}")
-    public ResponseEntity<List<CommentResponseDto>> getCommentsByPost(@PathVariable String postId) {
-        return ResponseEntity.ok(commentService.getCommentsByPost(postId));
+    @PostMapping("/posts/{postId}/comments")
+    public ResponseEntity<?> createComment(
+            @PathVariable String postId,
+            @RequestBody CreateCommentRequest request,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        try {
+            String username = extractUsername(authHeader);
+            CommentCreateDto dto = new CommentCreateDto();
+            dto.setContent(request.content());
+            dto.setPostId(postId);
+            CommentResponseDto comment = commentService.createComment(dto, username);
+            return ResponseEntity.ok(comment);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
-    // Asegurate de que el @RequestMapping arriba de la clase sea "/api/comments"
-
-    @PutMapping("/{id}")
-    public ResponseEntity<CommentResponseDto> updateComment(
+    @DeleteMapping("/comments/{id}")
+    public ResponseEntity<?> deleteComment(
             @PathVariable String id,
-            @RequestBody CommentCreateDto commentRequest,
-            Principal principal) {
-
-        // Llamamos al service que ya corregimos antes
-        return ResponseEntity.ok(commentService.updateComment(id, commentRequest, principal.getName()));
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        try {
+            String username = extractUsername(authHeader);
+            commentService.deleteComment(id, username);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteComment(@PathVariable String id) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        commentService.deleteComment(id, username);
-        return ResponseEntity.noContent().build();
+    @PutMapping("/comments/{id}")
+    public ResponseEntity<?> updateComment(
+            @PathVariable String id,
+            @RequestBody CreateCommentRequest request,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        try {
+            String username = extractUsername(authHeader);
+            CommentCreateDto dto = new CommentCreateDto();
+            dto.setContent(request.content());
+            CommentResponseDto updated = commentService.updateComment(id, dto, username);
+            return ResponseEntity.ok(updated);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    private String extractUsername(String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        return jwtService.extractUsername(token);
     }
 }
