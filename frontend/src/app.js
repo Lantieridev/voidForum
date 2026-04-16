@@ -490,19 +490,38 @@ function createFAB() {
 
 let fabVisible = true;
 let lastScrollY = 0;
+let searchVisible = true;
+const SCROLL_THRESHOLD = 50;
 
 function handleScroll() {
   const fab = document.getElementById('createPostBtn');
-  if (!fab) return;
+  const searchContainer = document.querySelector('.search-container');
   
   const currentScrollY = window.scrollY;
+  const scrollDelta = currentScrollY - lastScrollY;
   
-  if (currentScrollY < 100) {
-    fab.classList.add('fab-hidden');
-    fabVisible = false;
-  } else {
-    fab.classList.remove('fab-hidden');
-    fabVisible = true;
+  // Handle FAB visibility
+  if (fab) {
+    if (currentScrollY < 100) {
+      fab.classList.add('fab-hidden');
+      fabVisible = false;
+    } else {
+      fab.classList.remove('fab-hidden');
+      fabVisible = true;
+    }
+  }
+  
+  // Handle search bar visibility based on scroll direction
+  if (searchContainer) {
+    if (scrollDelta > SCROLL_THRESHOLD && searchVisible) {
+      // Scrolling down - hide search bar
+      searchContainer.classList.add('search-hidden');
+      searchVisible = false;
+    } else if (scrollDelta < -SCROLL_THRESHOLD && !searchVisible) {
+      // Scrolling up - show search bar
+      searchContainer.classList.remove('search-hidden');
+      searchVisible = true;
+    }
   }
   
   lastScrollY = currentScrollY;

@@ -345,6 +345,11 @@ body {
   max-width: 500px;
   padding: 0 20px;
   z-index: 999;
+  transition: transform 0.3s ease-in-out;
+}
+
+.search-container.search-hidden {
+  transform: translateX(-50%) translateY(-100%);
 }
 
 .search-box {
