@@ -102,13 +102,13 @@ export const postsApi = {
 
 export const commentsApi = {
   getByPost: async (postId) => {
-    return request(`/comments/post/${postId}`);
+    return request(`/posts/${postId}/comments`);
   },
 
   create: async (postId, content, parentCommentId = null) => {
-    return request('/comments', {
+    return request(`/posts/${postId}/comments`, {
       method: 'POST',
-      body: JSON.stringify({ postId, content, parentCommentId }),
+      body: JSON.stringify({ content, parentCommentId }),
     });
   },
 
