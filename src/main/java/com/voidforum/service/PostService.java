@@ -10,6 +10,7 @@ import com.voidforum.repository.PostRepository;
 import com.voidforum.repository.UserRepository;
 import com.voidforum.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 
@@ -42,7 +43,7 @@ public class PostService {
     }
 
     public List<PostResponseDto> getAllPosts() {
-        return postRepository.findAll().stream()
+        return postRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }
