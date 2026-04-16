@@ -1,1 +1,2 @@
-console.log('VoidForum frontend ready');
+import './style.css';
+import './app.js';

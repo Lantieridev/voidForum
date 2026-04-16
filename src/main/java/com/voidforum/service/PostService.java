@@ -1,125 +1,92 @@
 package com.voidforum.service;
 
+import com.voidforum.dto.PostCreateDto;
+import com.voidforum.dto.PostResponseDto;
 import com.voidforum.model.Post;
 import com.voidforum.model.User;
 import com.voidforum.model.Vote;
+import com.voidforum.repository.CommentRepository;
 import com.voidforum.repository.PostRepository;
+import com.voidforum.repository.UserRepository;
 import com.voidforum.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class PostService {
 
     private final PostRepository postRepository;
+    private final UserRepository userRepository;
+    private final CommentRepository commentRepository;
     private final VoteRepository voteRepository;
-    private final UserService userService;
 
-    public Post createPost(String title, String content, List<String> tags, String userId) {
-        User user = userService.getUserById(userId);
+    public PostResponseDto createPost(PostCreateDto request, String username) {
+        User author = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        Post post = new Post();
-        post.setTitle(title);
-        post.setContent(content);
-        post.setTags(tags);
-        post.setAuthorId(userId);
-        post.setAuthorUsername(user.getUsername());
-        post.setCreatedAt(LocalDateTime.now());
-        post.setUpdatedAt(LocalDateTime.now());
-        post.setUpvotes(0);
-        post.setDownvotes(0);
+        Post post = Post.builder()
+                .content(request.getContent())
+                .tags(request.getTags())
+                .authorId(author.getId())
+                .authorUsername(author.getUsername())
+                .createdAt(LocalDateTime.now())
+                .build();
 
-        return postRepository.save(post);
+        return mapToResponseDto(postRepository.save(post));
     }
 
-    public Post getPostById(String id) {
-        return postRepository.findById(id).orElseThrow(() -> new RuntimeException("Post not found"));
+    public List<PostResponseDto> getAllPosts() {
+        return postRepository.findAll().stream()
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
     }
+    public PostResponseDto updatePost(String id, PostCreateDto postRequest, String currentUsername) {
+        Post post = postRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
 
-    public Page<Post> getAllPosts(Pageable pageable) {
-        return postRepository.findAllByOrderByCreatedAtDesc(pageable);
-    }
-
-    public Page<Post> getPostsByTag(String tag, Pageable pageable) {
-        return postRepository.findByTagsContaining(tag, pageable);
-    }
-
-    public Post updatePost(String id, String title, String content, List<String> tags, String userId) {
-        Post post = getPostById(id);
-        
-        if (!post.getAuthorId().equals(userId)) {
-            throw new RuntimeException("Not authorized to update this post");
+        // Seguridad: Solo el autor edita
+        if (!post.getAuthorUsername().equals(currentUsername)) {
+            throw new RuntimeException("No tenés permiso para editar este post");
         }
 
-        if (title != null) post.setTitle(title);
-        if (content != null) post.setContent(content);
-        if (tags != null) post.setTags(tags);
-        post.setUpdatedAt(LocalDateTime.now());
+        // Actualización de campos
+        post.setContent(postRequest.getContent());
+        post.setTags(postRequest.getTags());
 
-        return postRepository.save(post);
+        Post updatedPost = postRepository.save(post);
+        return mapToResponseDto(updatedPost);
     }
 
-    public void deletePost(String id, String userId) {
-        Post post = getPostById(id);
-        
-        if (!post.getAuthorId().equals(userId)) {
-            throw new RuntimeException("Not authorized to delete this post");
+    public void deletePost(String postId, String username) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
+
+        // Seguridad: Solo el dueño borra
+        if (!post.getAuthorUsername().equals(username)) {
+            throw new RuntimeException("No tienes permiso para borrar este post");
         }
 
-        postRepository.delete(post);
+        // --- BORRADO EN CASCADA ---
+        voteRepository.deleteAllByTargetId(postId);      // Borra votos
+        commentRepository.deleteAllByPostId(postId);     // Borra comentarios
+        postRepository.deleteById(postId);               // Borra el post
     }
 
-    public record VoteResult(int upvotes, int downvotes, String userVote) {}
-
-    public VoteResult vote(String postId, String voteType, String userId) {
-        Post post = getPostById(postId);
-        
-        Optional<Vote> existingVote = voteRepository.findByUserIdAndTargetIdAndTargetType(userId, postId, "post");
-        
-        if (existingVote.isPresent()) {
-            Vote vote = existingVote.get();
-            
-            if (vote.getVoteType().equals(voteType)) {
-                voteRepository.delete(vote);
-                updatePostVotes(post);
-                return new VoteResult(post.getUpvotes(), post.getDownvotes(), null);
-            }
-            
-            vote.setVoteType(voteType);
-            voteRepository.save(vote);
-            updatePostVotes(post);
-        } else {
-            Vote vote = new Vote();
-            vote.setUserId(userId);
-            vote.setTargetId(postId);
-            vote.setTargetType("post");
-            vote.setVoteType(voteType);
-            vote.setCreatedAt(LocalDateTime.now());
-            voteRepository.save(vote);
-            updatePostVotes(post);
-        }
-
-        return new VoteResult(post.getUpvotes(), post.getDownvotes(), voteType);
-    }
-
-    private void updatePostVotes(Post post) {
-        int upvotes = (int) voteRepository.countByTargetIdAndVoteType(post.getId(), "up");
-        int downvotes = (int) voteRepository.countByTargetIdAndVoteType(post.getId(), "down");
-        post.setUpvotes(upvotes);
-        post.setDownvotes(downvotes);
-        postRepository.save(post);
-    }
-
-    public String getUserVote(String postId, String userId) {
-        return voteRepository.findByUserIdAndTargetIdAndTargetType(userId, postId, "post")
-                .map(Vote::getVoteType)
-                .orElse(null);
+    private PostResponseDto mapToResponseDto(Post post) {
+        return new PostResponseDto(
+                post.getId(),
+                post.getContent() != null ? post.getContent() : "",
+                post.getAuthorUsername() != null ? post.getAuthorUsername() : "Unknown",
+                post.getAuthorId() != null ? post.getAuthorId() : "",
+                post.getTags() != null ? post.getTags() : java.util.List.of(),
+                post.getVoteCount() != null ? post.getVoteCount() : 0,
+                post.getCreatedAt() != null ? post.getCreatedAt() : java.time.LocalDateTime.now()
+        );
     }
 }
