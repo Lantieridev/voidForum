@@ -844,27 +844,32 @@ body {
   opacity: 1;
 }
 
+.post-card.post-full .post-owner-actions {
+  opacity: 1;
+}
+
 .owner-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border: none;
   border-radius: var(--border-radius);
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .owner-action-btn:hover {
   background: var(--plate-bg);
+  color: var(--text-main);
 }
 
 .owner-action-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
 .owner-action-btn.edit-btn:hover {
