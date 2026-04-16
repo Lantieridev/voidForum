@@ -4,7 +4,7 @@ import { openLoginModal } from './auth/LoginModal.js';
 import { openRegisterModal } from './auth/RegisterModal.js';
 import { showRequireAuthCard } from './auth/requireAuth.js';
 
-const API_BASE_URL = 'http://localhost:8082/api';
+const API_BASE_URL = 'http://localhost:8080/api';
 import { authApi, votesApi, postsApi } from './auth/api.js';
 import { openCreatePostModal } from './posts/CreatePostModal.js';
 import { openEditPostModal } from './posts/EditPostModal.js';
@@ -34,6 +34,7 @@ const icons = {
 };
 
 let userVotes = {};
+let userSavedPosts = {};
 let currentView = 'feed';
 let userVotedPosts = [];
 let userPostCount = 0;
@@ -176,6 +177,8 @@ async function searchPosts(query) {
 
 function createPostCard(post, showActions = true) {
   const voteState = userVotes[post.id] || 0;
+  const isSaved = userSavedPosts[post.id] || false;
+  const savedCount = post.savedCount || 0;
   const currentUser = window.currentUser;
   const isAuthor = currentUser && (currentUser.id === post.authorId || currentUser.username === post.authorUsername);
 
@@ -222,9 +225,9 @@ function createPostCard(post, showActions = true) {
             ${icons.message}
             <span>0</span>
           </button>
-          <button class="action-btn" onclick="event.stopPropagation()">
-            ${icons.share}
-            <span>Compartir</span>
+          <button class="action-btn save-btn ${isSaved ? 'active' : ''}" data-post-id="${post.id}" onclick="event.stopPropagation(); window.handleSave('${post.id}')">
+            ${isSaved ? icons.bookmarkFilled : icons.bookmark}
+            <span>${savedCount}</span>
           </button>
         </div>
       ` : ''}
@@ -631,7 +634,16 @@ async function loadProfileData() {
     userVotedPosts = response.posts || [];
     userPostCount = response.postCount || 0;
     userPosts = response.userPosts || [];
-    savedPosts = response.savedPosts || [];
+    
+    const savedResponse = await fetch(`${API_BASE_URL}/users/saved`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    if (savedResponse.ok) {
+      const data = await savedResponse.json();
+      savedPosts = data.savedPosts || [];
+    }
     updateProfileContent();
   } catch (error) {
     console.error('Error loading profile data:', error);
@@ -727,6 +739,63 @@ window.handleComment = (postId) => {
     return;
   }
   console.log('Comment action for post:', postId);
+};
+
+window.handleSave = async (postId) => {
+  if (!isAuthenticated()) {
+    showRequireAuthCard('guardar un post');
+    return;
+  }
+
+  try {
+    const isCurrentlySaved = userSavedPosts[postId] || false;
+    const method = isCurrentlySaved ? 'DELETE' : 'POST';
+    const response = await fetch(`${API_BASE_URL}/users/saved/${postId}`, {
+      method: method,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      userSavedPosts[postId] = data.saved;
+      
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        if (data.saved) {
+          const exists = savedPosts.find(p => p.id === postId);
+          if (!exists) {
+            savedPosts.push({...post});
+          }
+        } else {
+          const idx = savedPosts.findIndex(p => p.id === postId);
+          if (idx !== -1) {
+            savedPosts.splice(idx, 1);
+          }
+        }
+      }
+      
+      const saveBtn = document.querySelector(`.save-btn[data-post-id="${postId}"]`);
+      if (saveBtn) {
+        const saveIcon = saveBtn.querySelector('svg');
+        if (saveIcon) {
+          saveIcon.outerHTML = (data.saved ? icons.bookmarkFilled : icons.bookmark);
+        }
+        const countSpan = saveBtn.querySelector('span');
+        if (countSpan) {
+          countSpan.textContent = data.savedCount || 0;
+        }
+        saveBtn.classList.toggle('active', data.saved);
+      }
+
+      if (currentView === 'profile' && currentProfileTab === 'saved') {
+        updateProfileContent();
+      }
+    }
+  } catch (error) {
+    console.error('Error saving post:', error);
+  }
 };
 
 window.handleCreatePost = () => {
@@ -1018,6 +1087,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function loadUserVotes() {
   if (!isAuthenticated()) {
     userVotes = {};
+    userSavedPosts = {};
     return;
   }
 
@@ -1034,6 +1104,24 @@ async function loadUserVotes() {
     });
   } catch (error) {
     console.error('Error loading user votes:', error);
+  }
+
+  try {
+    const savedResponse = await fetch(`${API_BASE_URL}/users/saved`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    if (savedResponse.ok) {
+      const data = await savedResponse.json();
+      const savedPostList = data.savedPosts || [];
+      userSavedPosts = {};
+      savedPostList.forEach(post => {
+        userSavedPosts[post.id] = true;
+      });
+    }
+  } catch (error) {
+    console.error('Error loading saved posts:', error);
   }
 }
 

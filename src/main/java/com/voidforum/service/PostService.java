@@ -70,6 +70,29 @@ public class PostService {
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }
+
+    public List<PostResponseDto> getPostsByIds(List<String> ids) {
+        return postRepository.findByIdIn(ids).stream()
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public Post incrementSavedCount(String postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
+        post.setSavedCount((post.getSavedCount() != null ? post.getSavedCount() : 0) + 1);
+        return postRepository.save(post);
+    }
+
+    public Post decrementSavedCount(String postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
+        if (post.getSavedCount() != null && post.getSavedCount() > 0) {
+            post.setSavedCount(post.getSavedCount() - 1);
+        }
+        return postRepository.save(post);
+    }
+
     public PostResponseDto updatePost(String id, PostCreateDto postRequest, String currentUsername) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post no encontrado"));
@@ -110,7 +133,8 @@ public class PostService {
                 post.getAuthorId() != null ? post.getAuthorId() : "",
                 post.getTags() != null ? post.getTags() : java.util.List.of(),
                 post.getVoteCount() != null ? post.getVoteCount() : 0,
-                post.getCreatedAt() != null ? post.getCreatedAt() : java.time.LocalDateTime.now()
+                post.getCreatedAt() != null ? post.getCreatedAt() : java.time.LocalDateTime.now(),
+                post.getSavedCount() != null ? post.getSavedCount() : 0
         );
     }
 }
