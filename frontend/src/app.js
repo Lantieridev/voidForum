@@ -246,7 +246,7 @@ function createPostCard(post, showActions = true) {
   const isAuthor = currentUser && (currentUser.id === post.authorId || currentUser.username === post.authorUsername);
   const amIFollowing = userFollowingIds && userFollowingIds.includes ? userFollowingIds.includes(post.authorId) : false;
 
-  const authorName = post.authorUsername || 'Usuario';
+  const authorDisplayName = post.authorDisplayName || post.authorUsername || 'Usuario';
   const authorUsername = post.authorUsername || 'usuario';
   const isDeletedUser = authorUsername && authorUsername.startsWith('[deleted]');
 
@@ -272,10 +272,10 @@ function createPostCard(post, showActions = true) {
   return `
     <article class="post-card ${isAuthor ? 'is-author' : ''}" data-post-id="${post.id}" onclick="window.openPost('${post.id}')">
       <div class="post-header" onclick="event.stopPropagation()">
-        <div class="post-avatar" onclick="event.stopPropagation(); window.navigateToUser('${post.authorId}')">${getInitials(authorName)}</div>
+        <div class="post-avatar" onclick="event.stopPropagation(); window.navigateToUser('${post.authorId}')">${getInitials(authorDisplayName)}</div>
         <div class="post-user-info">
           <div class="post-username" onclick="event.stopPropagation(); window.navigateToUser('${post.authorId}')">
-            ${authorName}
+            ${authorDisplayName}
           </div>
           <div class="post-time">@${authorUsername} · ${formatTimeAgo(post.createdAt)}</div>
         </div>
@@ -1132,7 +1132,7 @@ function renderPostDetail(postId) {
   const isSaved = userSavedPosts[post.id] || false;
   const savedCount = post.savedCount || 0;
 
-  const authorName = post.authorUsername || 'Usuario';
+  const authorDisplayName = post.authorDisplayName || post.authorUsername || 'Usuario';
   const authorUsername = post.authorUsername || 'usuario';
   const isDeletedUser = authorUsername && authorUsername.startsWith('[deleted]');
 
@@ -1144,10 +1144,10 @@ function renderPostDetail(postId) {
       </button>
       <article class="post-card post-full">
         <div class="post-header">
-          <div class="post-avatar" onclick="window.navigateToUser('${post.authorId}')">${getInitials(authorName)}</div>
+          <div class="post-avatar" onclick="window.navigateToUser('${post.authorId}')">${getInitials(authorDisplayName)}</div>
           <div class="post-user-info">
             <div class="post-username" onclick="window.navigateToUser('${post.authorId}')">
-              ${authorName}
+              ${authorDisplayName}
             </div>
             <div class="post-time">@${authorUsername} · ${formatTimeAgo(post.createdAt)}</div>
           </div>
