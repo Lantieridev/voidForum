@@ -738,6 +738,10 @@ body {
   opacity: 1;
 }
 
+.post-full .post-owner-actions {
+  opacity: 1;
+}
+
 .owner-action-btn {
   display: flex;
   align-items: center;
