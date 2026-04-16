@@ -675,6 +675,7 @@ body {
   border: 1px solid var(--glass-border-violet);
   color: var(--violet-accent);
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .post-tag:hover {
