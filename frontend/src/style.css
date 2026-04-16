@@ -922,6 +922,126 @@ body {
   padding: 20px;
 }
 
+/* --- COMMENT FORM --- */
+.comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--glass-border-white);
+}
+
+.comment-input,
+.reply-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--glass-border-white);
+  border-radius: var(--border-radius);
+  background: var(--bg-secondary);
+  color: var(--text-main);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.comment-input:focus,
+.reply-input:focus {
+  outline: none;
+  border-color: var(--violet-accent);
+}
+
+.comment-submit-btn,
+.reply-submit-btn {
+  align-self: flex-end;
+  padding: 8px 20px;
+  background: var(--violet-accent);
+  border: none;
+  border-radius: var(--border-radius);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.2s;
+}
+
+.comment-submit-btn:hover,
+.reply-submit-btn:hover {
+  background: var(--violet-glow);
+}
+
+.comment-submit-btn:disabled,
+.reply-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- COMMENT CARD --- */
+.comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.comment-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--border-radius);
+  transition: all 0.2s;
+}
+
+.comment-action:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-main);
+}
+
+.comment-action.vote-up.active {
+  color: var(--success);
+}
+
+.comment-action.vote-down.active {
+  color: var(--danger);
+}
+
+.comment-action.reply-btn:hover {
+  color: var(--violet-accent);
+}
+
+.comment-action.delete-btn:hover {
+  color: var(--danger);
+}
+
+.comment-action svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* --- REPLIES --- */
+.comment-replies {
+  margin-left: 30px;
+  margin-top: 12px;
+  padding-left: 16px;
+  border-left: 2px solid var(--glass-border-violet);
+}
+
+.reply-form {
+  margin-top: 12px;
+}
+
 /* --- FLOATING ACTION BUTTON --- */
 .create-post-btn {
   position: fixed;
@@ -1276,6 +1396,88 @@ body {
 
 .tag-preview .remove-tag:hover {
   opacity: 1;
+}
+
+/* --- CONFIRM MODAL --- */
+.confirm-modal {
+  background: var(--plate-bg);
+  backdrop-filter: blur(var(--blur-heavy));
+  -webkit-backdrop-filter: blur(var(--blur-heavy));
+  border-radius: var(--border-radius);
+  width: 100%;
+  max-width: 360px;
+  margin: 20px;
+  padding: 32px 24px;
+  animation: slideUp 0.3s ease;
+  border: 1px solid var(--glass-border-white);
+  text-align: center;
+}
+
+.light-theme .confirm-modal {
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.15);
+}
+
+.confirm-modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+}
+
+.confirm-modal-icon svg {
+  width: 28px;
+  height: 28px;
+  color: #ef4444;
+}
+
+.confirm-modal-message {
+  font-size: 15px;
+  color: var(--text-main);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.confirm-modal-cancel,
+.confirm-modal-confirm {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: var(--border-radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirm-modal-cancel {
+  background: transparent;
+  border: 1px solid var(--glass-border-white);
+  color: var(--text-secondary);
+}
+
+.confirm-modal-cancel:hover {
+  background: var(--glass-bg);
+  color: var(--text-main);
+}
+
+.confirm-modal-confirm {
+  background: #ef4444;
+  border: 1px solid #ef4444;
+  color: white;
+}
+
+.confirm-modal-confirm:hover {
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 /* --- REQUIRE AUTH --- */
