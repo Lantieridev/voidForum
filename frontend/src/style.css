@@ -388,17 +388,20 @@ body {
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  color: var(--text-dim);
+  width: 20px;
+  height: 20px;
+  color: #888;
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .search-icon svg {
   width: 18px;
   height: 18px;
+  opacity: 1;
 }
 
 .search-results-label {
@@ -1216,6 +1219,49 @@ body {
 .form-group textarea:focus {
   border-color: var(--violet-accent);
   box-shadow: 0 0 12px var(--violet-glow);
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  padding-right: 40px;
+  -webkit-text-security: none;
+  text-security: none;
+}
+
+.password-input-wrapper input::-webkit-credentials-auto-fill-button {
+  display: none !important;
+}
+
+.password-input-wrapper input::-webkit-credentials-auto-fill-button + .password-toggle-btn,
+.password-input-wrapper input::-webkit-password-toggle-button {
+  display: none !important;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-dim);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle-btn:hover {
+  color: var(--text-main);
+}
+
+.password-toggle-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .form-group input::placeholder,
