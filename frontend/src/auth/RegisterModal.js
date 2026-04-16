@@ -53,12 +53,18 @@ function render() {
         </div>
         <div class="form-group">
           <label for="registerPassword">Contraseña</label>
-          <input type="password" id="registerPassword" name="password" required minlength="6" autocomplete="new-password" />
+          <div class="password-input-wrapper">
+            <input type="password" id="registerPassword" name="password" required minlength="6" autocomplete="new-password" />
+            <button type="button" class="password-toggle-btn" onclick="window.togglePasswordVisibility('registerPassword', 'registerPasswordToggle')" id="registerPasswordToggle">${icons.eyeClosed}</button>
+          </div>
           <span class="form-hint">Mínimo 6 caracteres</span>
         </div>
         <div class="form-group">
           <label for="registerConfirmPassword">Confirmar Contraseña</label>
-          <input type="password" id="registerConfirmPassword" name="confirmPassword" required autocomplete="new-password" />
+          <div class="password-input-wrapper">
+            <input type="password" id="registerConfirmPassword" name="confirmPassword" required autocomplete="new-password" />
+            <button type="button" class="password-toggle-btn" onclick="window.togglePasswordVisibility('registerConfirmPassword', 'registerConfirmPasswordToggle')" id="registerConfirmPasswordToggle">${icons.eyeClosed}</button>
+          </div>
         </div>
         <div class="form-error" id="registerError" style="display: none;"></div>
         <button type="submit" class="auth-submit-btn" id="registerSubmitBtn">

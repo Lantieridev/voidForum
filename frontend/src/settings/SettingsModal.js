@@ -139,16 +139,25 @@ function renderSecurityTab() {
       <form id="passwordForm" class="settings-form">
         <div class="form-group">
           <label for="currentPassword">Contraseña actual</label>
-          <input type="password" id="currentPassword" required autocomplete="current-password" />
+          <div class="password-input-wrapper">
+            <input type="password" id="currentPassword" required autocomplete="current-password" />
+            <button type="button" class="password-toggle-btn" onclick="window.togglePasswordVisibility('currentPassword', 'currentPasswordToggle')" id="currentPasswordToggle">${window.icons?.eyeClosed || ''}</button>
+          </div>
         </div>
         <div class="form-group">
           <label for="newPassword">Nueva contraseña</label>
-          <input type="password" id="newPassword" required minlength="6" autocomplete="new-password" />
+          <div class="password-input-wrapper">
+            <input type="password" id="newPassword" required minlength="6" autocomplete="new-password" />
+            <button type="button" class="password-toggle-btn" onclick="window.togglePasswordVisibility('newPassword', 'newPasswordToggle')" id="newPasswordToggle">${window.icons?.eyeClosed || ''}</button>
+          </div>
           <span class="form-hint">Mínimo 6 caracteres</span>
         </div>
         <div class="form-group">
           <label for="confirmPassword">Confirmar nueva contraseña</label>
-          <input type="password" id="confirmPassword" required autocomplete="new-password" />
+          <div class="password-input-wrapper">
+            <input type="password" id="confirmPassword" required autocomplete="new-password" />
+            <button type="button" class="password-toggle-btn" onclick="window.togglePasswordVisibility('confirmPassword', 'confirmPasswordToggle')" id="confirmPasswordToggle">${window.icons?.eyeClosed || ''}</button>
+          </div>
         </div>
         <div class="form-error" id="passwordError" style="display: none;"></div>
         <div class="form-success" id="passwordSuccess" style="display: none;"></div>

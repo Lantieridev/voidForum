@@ -48,7 +48,10 @@ function render() {
         </div>
         <div class="form-group">
           <label for="loginPassword">Contraseña</label>
-          <input type="password" id="loginPassword" name="password" required autocomplete="current-password" />
+          <div class="password-input-wrapper">
+            <input type="password" id="loginPassword" name="password" required autocomplete="current-password" />
+            <button type="button" class="password-toggle-btn" onclick="window.togglePasswordVisibility('loginPassword', 'loginPasswordToggle')" id="loginPasswordToggle">${icons.eyeClosed}</button>
+          </div>
         </div>
         <div class="form-error" id="loginError" style="display: none;"></div>
         <button type="submit" class="auth-submit-btn" id="loginSubmitBtn">
