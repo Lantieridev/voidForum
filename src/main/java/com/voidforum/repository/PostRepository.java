@@ -21,4 +21,7 @@ public interface PostRepository extends MongoRepository<Post, String> {
     
     @Query("{ 'content': { $regex: ?0, $options: 'i' } }")
     List<Post> searchByContent(String content);
+
+    @Query("{ 'id': { $in: ?0 } }")
+    List<Post> findByIdIn(List<String> ids);
 }

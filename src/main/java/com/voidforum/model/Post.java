@@ -34,4 +34,7 @@ public class Post {
 
     @Builder.Default
     private Integer commentCount = 0;
+
+    @Builder.Default
+    private Integer savedCount = 0;
 }
