@@ -43,6 +43,11 @@ public class PostService {
 
     public List<PostResponseDto> getAllPosts() {
         return postRepository.findAll().stream()
+                .sorted((p1, p2) -> {
+                    if (p1.getCreatedAt() == null) return 1;
+                    if (p2.getCreatedAt() == null) return -1;
+                    return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                })
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }
