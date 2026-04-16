@@ -3,6 +3,7 @@ package com.voidforum.controller;
 import com.voidforum.dto.PostCreateDto;
 import com.voidforum.dto.PostResponseDto;
 import com.voidforum.service.PostService;
+import com.voidforum.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -11,6 +12,7 @@ import java.security.Principal;
 import com.voidforum.dto.PostCreateDto;
 import com.voidforum.dto.PostResponseDto;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -19,6 +21,7 @@ import java.util.List;
 public class PostController {
 
     private final PostService postService;
+    private final UserService userService;
 
     @PostMapping
     public ResponseEntity<PostResponseDto> createPost(@RequestBody PostCreateDto request) {
@@ -62,7 +65,20 @@ public class PostController {
             @PathVariable String id,
             @RequestBody PostCreateDto postRequest,
             Principal principal) {
-        // principal.getName() nos da el username del token JWT
         return ResponseEntity.ok(postService.updatePost(id, postRequest, principal.getName()));
+    }
+
+    @GetMapping("/feed")
+    public ResponseEntity<List<PostResponseDto>> getFeed() {
+        try {
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            List<String> followingIds = userService.getFollowingIds(username);
+            if (followingIds == null || followingIds.isEmpty()) {
+                return ResponseEntity.ok(Collections.emptyList());
+            }
+            return ResponseEntity.ok(postService.getFeed(followingIds));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Collections.emptyList());
+        }
     }
 }

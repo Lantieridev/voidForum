@@ -6,7 +6,7 @@ import { openConfirmModal } from './auth/ConfirmModal.js';
 import { showRequireAuthCard } from './auth/requireAuth.js';
 
 const API_BASE_URL = 'http://localhost:8080/api';
-import { authApi, votesApi, postsApi, commentsApi } from './auth/api.js';
+import { authApi, votesApi, postsApi, commentsApi, followApi } from './auth/api.js';
 import { openCreatePostModal } from './posts/CreatePostModal.js';
 import { openEditPostModal } from './posts/EditPostModal.js';
 import { openSettingsModal } from './settings/SettingsModal.js';
@@ -44,13 +44,21 @@ const icons = {
   bookmark: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
   bookmarkFilled: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>`,
   edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+  users: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  following: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>`,
+  userPlus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>`,
+  userCheck: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M18 11a6 6 0 0 0-11.99-4.99"/></svg>`
 };
 
 let userVotes = {};
 let currentView = 'feed';
 let userVotedPosts = [];
 let userPostCount = 0;
+let feedMode = 'all';
+let myFollowers = [];
+let myFollowing = [];
+let userFollowingIds = [];
 
 const POPULAR_TAGS = ['java', 'javascript', 'python', 'spring', 'react', 'angular', 'vue', 'nodejs', 'mongodb', 'mysql', 'docker', 'kubernetes', 'git', 'api', 'backend', 'frontend', 'fullstack', 'devops', 'cloud', 'aws'];
 
@@ -87,11 +95,25 @@ function createNavbar() {
     </button>
   `;
 
+  const feedTabs = loggedIn ? `
+    <div class="navbar-tabs">
+      <button class="nav-tab ${feedMode === 'all' ? 'active' : ''}" onclick="window.setFeedMode('all')">
+        Para ti
+      </button>
+      <button class="nav-tab ${feedMode === 'following' ? 'active' : ''}" onclick="window.setFeedMode('following')">
+        Siguiendo
+      </button>
+    </div>
+  ` : '';
+
   return `
     <nav class="navbar">
-      <div class="navbar-logo" onclick="window.navigateTo('feed')">
-        ${icons.logo}
-        <span>VoidForum</span>
+      <div class="navbar-left">
+        <div class="navbar-logo" onclick="window.navigateTo('feed')">
+          ${icons.logo}
+          <span>VoidForum</span>
+        </div>
+        ${feedTabs}
       </div>
       <div class="navbar-actions">
         <button class="theme-toggle ${isDark ? 'dark' : ''}" id="themeToggleBtn" title="Cambiar tema">
@@ -192,16 +214,37 @@ function createPostCard(post, showActions = true) {
   const voteState = userVotes[post.id] || 0;
   const currentUser = window.currentUser;
   const isAuthor = currentUser && (currentUser.id === post.authorId || currentUser.username === post.authorUsername);
+  const amIFollowing = userFollowingIds && userFollowingIds.includes ? userFollowingIds.includes(post.authorId) : false;
 
   const authorName = post.authorUsername || 'Usuario';
   const authorUsername = post.authorUsername || 'usuario';
+  const isDeletedUser = authorUsername && authorUsername.startsWith('[deleted]');
+
+  const shouldShowFollowBtn = !isAuthor && window.isLoggedIn && !isDeletedUser;
+  let followBtn = '';
+
+  if (shouldShowFollowBtn && amIFollowing) {
+    followBtn = `
+      <button class="action-btn follow-action-btn following" data-author-id="${post.authorId}" onclick="event.stopPropagation(); window.quickUnfollow('${post.authorId}', '${post.authorUsername}')">
+        ${icons.userCheck}
+        <span>Siguiendo</span>
+      </button>
+    `;
+  } else if (shouldShowFollowBtn && !amIFollowing) {
+    followBtn = `
+      <button class="action-btn follow-action-btn" data-author-id="${post.authorId}" onclick="event.stopPropagation(); window.quickFollow('${post.authorId}', '${post.authorUsername}')">
+        ${icons.userPlus}
+        <span>Seguir</span>
+      </button>
+    `;
+  }
 
   return `
     <article class="post-card ${isAuthor ? 'is-author' : ''}" data-post-id="${post.id}" onclick="window.openPost('${post.id}')">
       <div class="post-header" onclick="event.stopPropagation()">
-        <div class="post-avatar">${getInitials(authorName)}</div>
+        <div class="post-avatar" onclick="event.stopPropagation(); window.navigateToUser('${post.authorId}')">${getInitials(authorName)}</div>
         <div class="post-user-info">
-          <div class="post-username">
+          <div class="post-username" onclick="event.stopPropagation(); window.navigateToUser('${post.authorId}')">
             ${authorName}
           </div>
           <div class="post-time">@${authorUsername} · ${formatTimeAgo(post.createdAt)}</div>
@@ -236,10 +279,7 @@ function createPostCard(post, showActions = true) {
             ${icons.message}
             <span>${post.commentCount || 0}</span>
           </button>
-          <button class="action-btn" onclick="event.stopPropagation()">
-            ${icons.share}
-            <span>Compartir</span>
-          </button>
+          ${followBtn}
         </div>
       ` : ''}
     </article>
@@ -248,9 +288,9 @@ function createPostCard(post, showActions = true) {
 
 function createFeed() {
   const displayPosts = window.isSearching ? (window.searchResults || []) : posts;
-  const searchLabel = window.isSearching ? 
+  const searchLabel = window.isSearching ?
     `<div class="search-results-label"><span class="label-text">Resultado de búsqueda:</span><span class="search-term">${window.lastSearchQuery || ''}</span></div>` : '';
-  
+
   return `
     <main class="content-wrapper">
       <section class="glass-plate composer">
@@ -552,7 +592,7 @@ let savedPosts = [];
 
 function createProfilePage() {
   const user = window.currentUser;
-  
+
   return `
     <div class="profile-page">
       <div class="profile-header">
@@ -560,6 +600,16 @@ function createProfilePage() {
         <div class="profile-info">
           <h1 class="profile-display-name">${user.displayName || user.username}</h1>
           <p class="profile-username">@${user.username}</p>
+        </div>
+      </div>
+      <div class="profile-stats-row">
+        <div class="stat-item" onclick="window.showMyFollowers()">
+          <span class="stat-value">${myFollowers.length}</span>
+          <span class="stat-label">Followers</span>
+        </div>
+        <div class="stat-item" onclick="window.showMyFollowing()">
+          <span class="stat-value">${myFollowing.length}</span>
+          <span class="stat-label">Following</span>
         </div>
       </div>
       <nav class="profile-tabs">
@@ -617,7 +667,7 @@ function renderProfileSaved() {
   return savedPosts.map(post => createPostCard(post)).join('');
 }
 
-function renderProfile() {
+async function renderProfile() {
   const user = window.currentUser;
   if (!user) {
     showRequireAuthCard('ver tu perfil');
@@ -626,6 +676,16 @@ function renderProfile() {
 
   currentView = 'profile';
   currentProfileTab = 'posts';
+
+  const userId = window.currentUser?.id;
+  if (userId) {
+    try {
+      myFollowers = await followApi.getFollowers(userId);
+      myFollowing = await followApi.getFollowing(userId);
+    } catch (error) {
+      console.error('Error loading followers:', error);
+    }
+  }
 
   const app = document.getElementById('app');
   app.innerHTML = createNavbar() + `
@@ -646,6 +706,13 @@ async function loadProfileData() {
     userPostCount = response.postCount || 0;
     userPosts = response.userPosts || [];
     savedPosts = response.savedPosts || [];
+
+    const userId = window.currentUser?.id;
+    if (userId) {
+      myFollowers = await followApi.getFollowers(userId);
+      myFollowing = await followApi.getFollowing(userId);
+    }
+
     updateProfileContent();
   } catch (error) {
     console.error('Error loading profile data:', error);
@@ -975,6 +1042,11 @@ window.navigateTo = (view) => {
   }
 };
 
+window.navigateToUser = (userId) => {
+  window.history.pushState({ view: 'user', userId }, '', `#/user/${userId}`);
+  renderUserProfile(userId);
+};
+
 function renderPostDetail(postId) {
   const post = posts.find(p => p.id === postId);
   if (!post) return;
@@ -1178,10 +1250,12 @@ window.refreshUI = () => {
 document.addEventListener('DOMContentLoaded', async () => {
   await initAuth();
   await loadUserVotes();
+  await loadUserFollowingIds();
   await loadPosts();
 
   onAuthChange(async () => {
     await loadUserVotes();
+    await loadUserFollowingIds();
     if (typeof window.refreshUI === 'function') {
       window.refreshUI();
     }
@@ -1238,7 +1312,12 @@ async function loadUserVotes() {
 
 async function loadPosts() {
   try {
-    const response = await postsApi.getAll();
+    let response;
+    if (feedMode === 'following' && window.isLoggedIn) {
+      response = await followApi.getFeed();
+    } else {
+      response = await postsApi.getAll();
+    }
     const postsData = Array.isArray(response) ? response : (response.posts || []);
     posts.splice(0, posts.length, ...postsData);
     render();
@@ -1247,12 +1326,22 @@ async function loadPosts() {
   }
 }
 
+window.setFeedMode = async (mode) => {
+  feedMode = mode;
+  await loadPosts();
+};
+
 window.refreshPosts = async () => {
   try {
-    const response = await postsApi.getAll();
+    let response;
+    if (feedMode === 'following' && window.isLoggedIn) {
+      response = await followApi.getFeed();
+    } else {
+      response = await postsApi.getAll();
+    }
     const postsData = Array.isArray(response) ? response : (response.posts || []);
     posts.splice(0, posts.length, ...postsData);
-    
+
     if (currentView === 'profile') {
       renderProfile();
     } else {
@@ -1267,3 +1356,245 @@ window.refreshPosts = async () => {
 window.autoGrow = autoGrow;
 window.handleComposerSubmit = handleComposerSubmit;
 window.addComposerTag = addComposerTag;
+window.navigateToUser = navigateToUser;
+
+let currentTargetUser = null;
+let userFollowers = [];
+let userFollowing = [];
+let targetUserPosts = [];
+let currentTargetUserTab = 'posts';
+
+async function renderUserProfile(userId) {
+  currentView = 'user';
+  currentTargetUserTab = 'posts';
+
+  try {
+    currentTargetUser = await authApi.getUserById(userId);
+    await loadUserProfileData(userId);
+    renderUserProfileUI();
+  } catch (error) {
+    console.error('Error loading user profile:', error);
+    window.navigateTo('feed');
+  }
+}
+
+async function loadUserProfileData(userId) {
+  try {
+    userFollowers = await followApi.getFollowers(userId);
+    userFollowing = await followApi.getFollowing(userId);
+    const allPosts = await postsApi.getAll();
+    targetUserPosts = allPosts.filter(p => p.authorId === userId);
+  } catch (error) {
+    console.error('Error loading user data:', error);
+  }
+}
+
+function renderUserProfileUI() {
+  const user = currentTargetUser;
+  if (!user) return;
+
+  const app = document.getElementById('app');
+  app.innerHTML = createNavbar() + `
+    <div class="profile-container">
+      ${createTargetUserPage()}
+    </div>
+  ` + createFAB();
+  attachTargetUserProfileEvents();
+  attachScrollListener();
+}
+
+function createTargetUserPage() {
+  const user = currentTargetUser;
+  const isMe = window.currentUser && window.currentUser.id === user.id;
+  const isDeletedUser = user.username && user.username.startsWith('[deleted]');
+
+  return `
+    <div class="profile-page">
+      <div class="profile-header">
+        <div class="profile-avatar-large">${getInitials(user.displayName || user.username)}</div>
+        <div class="profile-info">
+          <h1 class="profile-display-name">${user.displayName || user.username}</h1>
+          <p class="profile-username">@${user.username}</p>
+          ${user.bio ? `<p class="profile-bio">${user.bio}</p>` : ''}
+        </div>
+        ${!isMe && !isDeletedUser ? `
+          <button class="btn-void follow-btn" id="followBtn" onclick="window.handleFollowToggle()">
+            ${user.isFollowing ? 'Dejar de seguir' : 'Seguir'}
+          </button>
+        ` : ''}
+      </div>
+      <div class="profile-stats-row">
+        <div class="stat-item" onclick="window.showUserFollowers()">
+          <span class="stat-value">${user.followerCount || 0}</span>
+          <span class="stat-label">Followers</span>
+        </div>
+        <div class="stat-item" onclick="window.showUserFollowing()">
+          <span class="stat-value">${user.followingCount || 0}</span>
+          <span class="stat-label">Following</span>
+        </div>
+      </div>
+      <nav class="profile-tabs">
+        <button class="profile-tab ${currentTargetUserTab === 'posts' ? 'active' : ''}" data-tab="posts" onclick="window.setTargetUserTab('posts')">
+          ${icons.file}
+          <span>Posts</span>
+        </button>
+      </nav>
+      <div class="profile-content">
+        ${renderTargetUserTabContent()}
+      </div>
+    </div>
+  `;
+}
+
+function renderTargetUserTabContent() {
+  if (currentTargetUserTab === 'posts') {
+    if (targetUserPosts.length === 0) {
+      return '<p class="empty-tab-message">No tiene posts todavía.</p>';
+    }
+    return targetUserPosts.map(post => createPostCard(post)).join('');
+  }
+  return '';
+}
+
+window.setTargetUserTab = (tab) => {
+  currentTargetUserTab = tab;
+  document.querySelectorAll('.profile-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  document.querySelector('.profile-content').innerHTML = renderTargetUserTabContent();
+};
+
+function attachTargetUserProfileEvents() {
+  attachCommonEvents();
+}
+
+window.handleFollowToggle = async () => {
+  if (!window.isLoggedIn) {
+    showRequireAuthCard('seguir a este usuario');
+    return;
+  }
+
+  const user = currentTargetUser;
+  if (!user || user.id === window.currentUser.id) return;
+
+  try {
+    if (user.isFollowing) {
+      await followApi.unfollow(user.id);
+      user.isFollowing = false;
+      user.followerCount = Math.max(0, (user.followerCount || 1) - 1);
+    } else {
+      await followApi.follow(user.id);
+      user.isFollowing = true;
+      user.followerCount = (user.followerCount || 0) + 1;
+    }
+    renderUserProfileUI();
+  } catch (error) {
+    console.error('Error toggling follow:', error);
+  }
+};
+
+window.showUserFollowers = () => {
+  userFollowersModal(userFollowers);
+};
+
+window.showUserFollowing = () => {
+  userFollowersModal(userFollowing);
+};
+
+window.showMyFollowers = () => {
+  userFollowersModal(myFollowers);
+};
+
+window.showMyFollowing = () => {
+  userFollowersModal(myFollowing);
+};
+
+function userFollowersModal(users) {
+  if (!users || users.length === 0) {
+    alert('No hay usuarios para mostrar.');
+    return;
+  }
+
+  const usersHtml = users.map(u => `
+    <div class="user-list-item" onclick="window.navigateToUser('${u.id}')">
+      <div class="user-list-avatar">${getInitials(u.displayName || u.username)}</div>
+      <div class="user-list-info">
+        <div class="user-list-name">${u.displayName || u.username}</div>
+        <div class="user-list-username">@${u.username}</div>
+      </div>
+    </div>
+  `).join('');
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-overlay';
+  modal.id = 'userListModal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Usuarios</h3>
+        <button class="modal-close" onclick="document.getElementById('userListModal').remove()">×</button>
+      </div>
+      <div class="modal-body">
+        ${usersHtml}
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+window.quickFollow = async (userId, username) => {
+  if (!window.isLoggedIn) {
+    showRequireAuthCard('seguir a este usuario');
+    return;
+  }
+
+  try {
+    await followApi.follow(userId);
+    userFollowingIds.push(userId);
+    const btn = document.querySelector(`.follow-action-btn[data-author-id="${userId}"]`);
+    if (btn) {
+      btn.innerHTML = icons.userCheck + '<span>Siguiendo</span>';
+      btn.classList.add('following');
+      btn.setAttribute('onclick', `event.stopPropagation(); window.quickUnfollow('${userId}', '${username}')`);
+    }
+    await refreshPosts();
+  } catch (error) {
+    console.error('Error following:', error);
+  }
+};
+
+window.quickUnfollow = async (userId, username) => {
+  if (!window.isLoggedIn) {
+    showRequireAuthCard('dejar de seguir a este usuario');
+    return;
+  }
+
+  try {
+    await followApi.unfollow(userId);
+    userFollowingIds = userFollowingIds.filter(id => id !== userId);
+    const btn = document.querySelector(`.follow-action-btn[data-author-id="${userId}"]`);
+    if (btn) {
+      btn.innerHTML = icons.userPlus + '<span>Seguir</span>';
+      btn.classList.remove('following');
+      btn.setAttribute('onclick', `event.stopPropagation(); window.quickFollow('${userId}', '${username}')`);
+    }
+    await refreshPosts();
+  } catch (error) {
+    console.error('Error unfollowing:', error);
+  }
+};
+
+async function loadUserFollowingIds() {
+  if (!window.isLoggedIn) {
+    userFollowingIds = [];
+    return;
+  }
+  try {
+    const ids = await followApi.getMyFollowingIds();
+    userFollowingIds = Array.isArray(ids) ? ids : [];
+    console.log('Loaded following IDs:', userFollowingIds);
+  } catch (error) {
+    console.error('Error loading following ids:', error);
+    userFollowingIds = [];
+  }
+}
