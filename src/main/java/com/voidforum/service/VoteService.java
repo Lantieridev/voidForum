@@ -119,4 +119,26 @@ public class VoteService {
         List<Vote> votes = voteRepository.findAllByTargetId(targetId);
         return votes.stream().filter(v -> v.getValue() == 1).mapToInt(Vote::getValue).sum();
     }
+
+    public Map<String, Object> cleanupDuplicateVotes() {
+        List<Vote> allVotes = voteRepository.findAll();
+        Map<String, List<Vote>> groupedVotes = allVotes.stream()
+                .collect(Collectors.groupingBy(v -> v.getUserId() + "_" + v.getTargetId()));
+
+        int duplicatesRemoved = 0;
+        for (Map.Entry<String, List<Vote>> entry : groupedVotes.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                Vote keep = entry.getValue().get(0);
+                for (int i = 1; i < entry.getValue().size(); i++) {
+                    voteRepository.delete(entry.getValue().get(i));
+                    duplicatesRemoved++;
+                }
+            }
+        }
+
+        return Map.of(
+                "duplicatesRemoved", duplicatesRemoved,
+                "message", "Votos duplicados limpiados exitosamente"
+        );
+    }
 }

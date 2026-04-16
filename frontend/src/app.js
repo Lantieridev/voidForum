@@ -4,7 +4,7 @@ import { openLoginModal } from './auth/LoginModal.js';
 import { openRegisterModal } from './auth/RegisterModal.js';
 import { showRequireAuthCard } from './auth/requireAuth.js';
 
-const API_BASE_URL = 'http://localhost:8082/api';
+const API_BASE_URL = 'http://localhost:8080/api';
 import { authApi, votesApi, postsApi } from './auth/api.js';
 import { openCreatePostModal } from './posts/CreatePostModal.js';
 import { openEditPostModal } from './posts/EditPostModal.js';
