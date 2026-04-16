@@ -24,4 +24,7 @@ public interface PostRepository extends MongoRepository<Post, String> {
 
     @Query("{ 'authorId': { $in: ?0 } }")
     List<Post> findByAuthorIdIn(List<String> authorIds);
+    
+    @Query("{ '_id': { $in: ?0 } }")
+    List<Post> findByIdIn(List<String> ids);
 }
