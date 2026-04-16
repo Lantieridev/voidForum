@@ -25,7 +25,40 @@
 
 - **Backend**: `http://localhost:8080`
 - **Frontend**: `http://localhost:5173`
-- **MongoDB**: `localhost:27017`
+- **MongoDB Atlas**: `tpgrupo15.g7bd9qy.mongodb.net`
+
+## MongoDB Setup
+
+### Connection String
+```properties
+spring.data.mongodb.uri=mongodb+srv://TP_Grupo15:5Cd1S1JjAEcYj4s1@tpgrupo15.g7bd9qy.mongodb.net/voidforum
+```
+
+### Crear Índices (ejecutar en MongoDB Compass o Mongo Shell)
+```javascript
+// usuarios
+db.users.createIndex({ "username": 1 }, { unique: true })
+db.users.createIndex({ "email": 1 }, { unique: true })
+
+// posts
+db.posts.createIndex({ "authorId": 1 })
+db.posts.createIndex({ "tags": 1 })
+db.posts.createIndex({ "createdAt": -1 })
+
+// comentarios
+db.comments.createIndex({ "postId": 1, "createdAt": -1 })
+db.comments.createIndex({ "authorId": 1 })
+
+// votos (importante para evitar duplicados)
+db.votes.createIndex({ "userId": 1, "targetId": 1, "targetType": 1 }, { unique: true })
+```
+
+### Verificar conexión
+```javascript
+// En MongoDB Compass o Shell
+use voidforum
+db.users.findOne()  // debería retornar null si no hay usuarios
+```
 
 ## Troubleshooting
 
