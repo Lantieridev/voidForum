@@ -36,8 +36,10 @@ let currentView = 'feed';
 let userVotedPosts = [];
 let userPostCount = 0;
 
+const POPULAR_TAGS = ['java', 'javascript', 'python', 'spring', 'react', 'angular', 'vue', 'nodejs', 'mongodb', 'mysql', 'docker', 'kubernetes', 'git', 'api', 'backend', 'frontend', 'fullstack', 'devops', 'cloud', 'aws'];
+
 function createNavbar() {
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const isDark = document.body.classList.contains('dark-theme');
   const loggedIn = window.isLoggedIn;
   const user = window.currentUser;
 
@@ -160,10 +162,193 @@ function createPostCard(post, showActions = true) {
 
 function createFeed() {
   return `
-    <div class="feed-container">
-      ${posts.length > 0 ? posts.map(post => createPostCard(post)).join('') : '<p class="no-posts">No hay posts aún.</p>'}
-    </div>
+    <main class="content-wrapper">
+      <section class="glass-plate composer">
+        <div class="plate-content">
+          <div class="input-row">
+            <span class="prompt">>>></span>
+            <textarea 
+              id="composerInput"
+              placeholder="Iniciar transmisión..." 
+              rows="1"
+              oninput="autoGrow(this)"
+            ></textarea>
+          </div>
+          <div class="composer-tags-row">
+            <input 
+              type="text" 
+              id="composerTagsInput" 
+              class="composer-tags-input" 
+              placeholder="#tags"
+              autocomplete="off"
+            />
+            <div class="tags-suggestions composer-tags-suggestions" id="composerTagsSuggestions"></div>
+          </div>
+          <div class="tags-preview composer-tags-preview" id="composerTagsPreview"></div>
+          <div class="composer-actions">
+            <button class="btn-void" id="composerSubmitBtn" onclick="handleComposerSubmit()">TRANSMITIR</button>
+          </div>
+        </div>
+      </section>
+      <div class="stream">
+        ${posts.length > 0 ? posts.map(post => createPostCard(post)).join('') : '<p class="no-posts">No hay posts aún.</p>'}
+      </div>
+    </main>
   `;
+}
+
+function autoGrow(element) {
+  element.style.height = '';
+  element.style.height = element.scrollHeight + 'px';
+}
+
+let composerTags = [];
+
+function getComposerTags() {
+  const input = document.getElementById('composerTagsInput');
+  if (!input) return [];
+  return input.value
+    .split(' ')
+    .map(t => t.trim().replace(/^#/, ''))
+    .filter(t => t.length > 0);
+}
+
+function updateComposerTagsPreview() {
+  const preview = document.getElementById('composerTagsPreview');
+  if (!preview) return;
+  
+  const tags = getComposerTags();
+  if (tags.length === 0) {
+    preview.innerHTML = '';
+    return;
+  }
+  
+  preview.innerHTML = tags.map(tag => `<span class="tag-preview">#${tag}</span>`).join('');
+}
+
+function handleComposerTagInput(e) {
+  const input = e.target;
+  const value = input.value;
+  
+  const parts = value.split(' ');
+  const lastPart = parts[parts.length - 1];
+  
+  if (lastPart.startsWith('#')) {
+    const search = lastPart.slice(1).toLowerCase();
+    const suggestions = POPULAR_TAGS.filter(tag => 
+      tag.toLowerCase().includes(search) && 
+      !getComposerTags().includes(tag)
+    );
+    showComposerSuggestions(suggestions);
+  } else if (lastPart === '' && parts.length > 1) {
+    const previousPart = parts[parts.length - 2];
+    if (previousPart.startsWith('#') && previousPart.length > 1) {
+      const tagToAdd = previousPart.slice(1).trim();
+      if (tagToAdd && !getComposerTags().includes(tagToAdd)) {
+        const tags = getComposerTags();
+        tags.push(tagToAdd);
+        input.value = tags.map(t => `#${t}`).join(' ') + ' ';
+        updateComposerTagsPreview();
+        hideComposerSuggestions();
+      }
+    }
+  } else {
+    hideComposerSuggestions();
+  }
+  
+  updateComposerTagsPreview();
+}
+
+function showComposerSuggestions(suggestions) {
+  const container = document.getElementById('composerTagsSuggestions');
+  if (!container || suggestions.length === 0) {
+    hideComposerSuggestions();
+    return;
+  }
+
+  container.innerHTML = suggestions.map((tag, index) => `
+    <div class="tag-suggestion ${index === 0 ? 'selected' : ''}" data-tag="${tag}">
+      #${tag}
+    </div>
+  `).join('');
+
+  container.querySelectorAll('.tag-suggestion').forEach(el => {
+    el.addEventListener('click', () => {
+      addComposerTag(el.dataset.tag);
+    });
+  });
+
+  container.style.display = 'block';
+}
+
+function hideComposerSuggestions() {
+  const container = document.getElementById('composerTagsSuggestions');
+  if (container) {
+    container.style.display = 'none';
+  }
+}
+
+function addComposerTag(tag) {
+  const input = document.getElementById('composerTagsInput');
+  const tags = getComposerTags();
+  
+  if (!tags.includes(tag)) {
+    tags.push(tag);
+    input.value = tags.map(t => `#${t}`).join(' ') + ' ';
+  }
+  
+  updateComposerTagsPreview();
+  hideComposerSuggestions();
+  input.focus();
+}
+
+function handleComposerTagKeydown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const suggestions = document.querySelector('.tag-suggestion.selected');
+    if (suggestions) {
+      addComposerTag(suggestions.dataset.tag);
+    }
+  }
+}
+
+async function handleComposerSubmit() {
+  const input = document.getElementById('composerInput');
+  const content = input.value.trim();
+  const tags = getComposerTags();
+  const submitBtn = document.getElementById('composerSubmitBtn');
+  
+  if (!content) return;
+  
+  if (!isAuthenticated()) {
+    showRequireAuthCard('crear un post');
+    return;
+  }
+  
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'TRANSMITIENDO...';
+  
+  try {
+    console.log('Creando post con:', { content, tags });
+    const result = await postsApi.create(content, tags);
+    console.log('Post creado:', result);
+    
+    input.value = '';
+    const tagsInput = document.getElementById('composerTagsInput');
+    tagsInput.value = '';
+    composerTags = [];
+    updateComposerTagsPreview();
+    
+    if (typeof window.refreshPosts === 'function') {
+      await window.refreshPosts();
+    }
+  } catch (error) {
+    console.error('Error al crear post:', error);
+    alert('Error al crear el post: ' + (error.message || 'Error desconocido'));
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'TRANSMITIR';
+  }
 }
 
 function createProfileSidebar() {
@@ -210,10 +395,35 @@ function createProfileSidebar() {
 
 function createFAB() {
   return `
-    <button class="create-post-btn" id="createPostBtn" title="Crear nuevo post">
+    <button class="create-post-btn fab-hidden" id="createPostBtn" title="Crear nuevo post">
       ${icons.plus}
     </button>
   `;
+}
+
+let fabVisible = true;
+let lastScrollY = 0;
+
+function handleScroll() {
+  const fab = document.getElementById('createPostBtn');
+  if (!fab) return;
+  
+  const currentScrollY = window.scrollY;
+  
+  if (currentScrollY < 100) {
+    fab.classList.add('fab-hidden');
+    fabVisible = false;
+  } else {
+    fab.classList.remove('fab-hidden');
+    fabVisible = true;
+  }
+  
+  lastScrollY = currentScrollY;
+}
+
+function attachScrollListener() {
+  window.addEventListener('scroll', handleScroll, { passive: true });
+  handleScroll();
 }
 
 let currentProfileTab = 'posts';
@@ -305,6 +515,7 @@ function renderProfile() {
   ` + createFAB();
 
   attachProfileEvents();
+  attachScrollListener();
   loadProfileData();
 }
 
@@ -525,6 +736,7 @@ function renderPostDetail(postId) {
   const app = document.getElementById('app');
   app.innerHTML = createNavbar() + postDetail + createFAB();
   attachPostDetailEvents();
+  attachScrollListener();
 }
 
 function attachPostDetailEvents() {
@@ -547,24 +759,21 @@ function attachCommonEvents() {
   const createPostBtn = document.getElementById('createPostBtn');
 
   themeToggleBtn?.addEventListener('click', () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    const isDark = newTheme === 'dark';
+    const isDark = document.body.classList.contains('dark-theme');
 
     if (isDark) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
+      document.body.classList.remove('dark-theme');
+      document.body.classList.add('light-theme');
       localStorage.setItem('theme', 'light');
-    }
-
-    if (isDark) {
-      themeToggleBtn.classList.add('dark');
-    } else {
       themeToggleBtn.classList.remove('dark');
+      themeToggleBtn.querySelector('.theme-toggle-icon').innerHTML = icons.sun;
+    } else {
+      document.body.classList.remove('light-theme');
+      document.body.classList.add('dark-theme');
+      localStorage.setItem('theme', 'dark');
+      themeToggleBtn.classList.add('dark');
+      themeToggleBtn.querySelector('.theme-toggle-icon').innerHTML = icons.moon;
     }
-    themeToggleBtn.querySelector('.theme-toggle-icon').innerHTML = isDark ? icons.moon : icons.sun;
   });
 
   userMenuBtn?.addEventListener('click', (e) => {
@@ -609,9 +818,21 @@ function attachCommonEvents() {
 
   createPostBtn?.addEventListener('click', window.handleCreatePost);
 
+  const composerTagsInput = document.getElementById('composerTagsInput');
+  composerTagsInput?.addEventListener('input', handleComposerTagInput);
+  composerTagsInput?.addEventListener('keydown', handleComposerTagKeydown);
+
   const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
+  if (savedTheme === 'light') {
+    document.body.classList.remove('dark-theme');
+    document.body.classList.add('light-theme');
+    if (themeToggleBtn) {
+      themeToggleBtn.classList.remove('dark');
+      themeToggleBtn.querySelector('.theme-toggle-icon').innerHTML = icons.sun;
+    }
+  } else {
+    document.body.classList.remove('light-theme');
+    document.body.classList.add('dark-theme');
     if (themeToggleBtn) {
       themeToggleBtn.classList.add('dark');
       themeToggleBtn.querySelector('.theme-toggle-icon').innerHTML = icons.moon;
@@ -624,6 +845,16 @@ function render() {
   const app = document.getElementById('app');
   app.innerHTML = createNavbar() + createSearchBar() + createFeed() + createFAB();
   attachEventListeners();
+  attachScrollListener();
+  
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'light') {
+    document.body.classList.remove('dark-theme');
+    document.body.classList.add('light-theme');
+  } else {
+    document.body.classList.remove('light-theme');
+    document.body.classList.add('dark-theme');
+  }
 }
 
 function attachEventListeners() {
@@ -725,3 +956,8 @@ window.refreshPosts = async () => {
     console.error('Error refreshing posts:', error);
   }
 };
+
+// Exponer funciones para uso inline en HTML
+window.autoGrow = autoGrow;
+window.handleComposerSubmit = handleComposerSubmit;
+window.addComposerTag = addComposerTag;
