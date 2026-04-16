@@ -1737,3 +1737,5 @@ window.searchByTag = (tagName) => {
     searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
   }
 };
+
+window.openSettingsModal = openSettingsModal;
