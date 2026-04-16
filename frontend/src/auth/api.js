@@ -135,4 +135,34 @@ export const votesApi = {
   },
 };
 
+export const usersApi = {
+  updateProfile: async (data) => {
+    return request('/users/me', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    return request('/users/me/password', {
+      method: 'PUT',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+  },
+
+  updateNotifications: async (prefs) => {
+    return request('/users/me/notifications', {
+      method: 'PUT',
+      body: JSON.stringify(prefs),
+    });
+  },
+
+  deleteAccount: async (password) => {
+    return request('/users/me', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    });
+  },
+};
+
 export { ApiError };

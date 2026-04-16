@@ -37,6 +37,11 @@ public class AuthService {
                 savedUser.getId(),
                 savedUser.getUsername(),
                 savedUser.getEmail(),
+                savedUser.getDisplayName(),
+                savedUser.getBio(),
+                savedUser.isNotifyLikes(),
+                savedUser.isNotifyComments(),
+                savedUser.isNotifyMentions(),
                 savedUser.getCreatedAt()
         );
     }
@@ -45,7 +50,6 @@ public class AuthService {
         User user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // <--- CAMBIO IMPORTANTE: Usamos matches() porque la clave de la DB está hasheada
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new RuntimeException("Contraseña incorrecta");
         }
@@ -58,6 +62,11 @@ public class AuthService {
                         user.getId(),
                         user.getUsername(),
                         user.getEmail(),
+                        user.getDisplayName(),
+                        user.getBio(),
+                        user.isNotifyLikes(),
+                        user.isNotifyComments(),
+                        user.isNotifyMentions(),
                         user.getCreatedAt()
                 )
         );
@@ -78,6 +87,11 @@ public class AuthService {
                         user.getId(),
                         user.getUsername(),
                         user.getEmail(),
+                        user.getDisplayName(),
+                        user.getBio(),
+                        user.isNotifyLikes(),
+                        user.isNotifyComments(),
+                        user.isNotifyMentions(),
                         user.getCreatedAt()
                 )
         );

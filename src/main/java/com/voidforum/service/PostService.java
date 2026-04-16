@@ -78,6 +78,14 @@ public class PostService {
         postRepository.deleteById(postId);               // Borra el post
     }
 
+    public void anonymizeUserPosts(String oldUsername, String newUsername) {
+        List<Post> posts = postRepository.findByAuthorUsername(oldUsername);
+        for (Post post : posts) {
+            post.setAuthorUsername(newUsername);
+        }
+        postRepository.saveAll(posts);
+    }
+
     private PostResponseDto mapToResponseDto(Post post) {
         return new PostResponseDto(
                 post.getId(),
