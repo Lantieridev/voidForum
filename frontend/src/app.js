@@ -735,6 +735,16 @@ async function renderProfile() {
 
 async function renderSaved() {
   currentView = 'saved';
+  
+  if (savedPosts.length === 0) {
+    try {
+      const response = await votesApi.getUserVotedPosts();
+      savedPosts = response.savedPosts || [];
+    } catch (error) {
+      console.error('Error loading saved posts:', error);
+    }
+  }
+  
   const app = document.getElementById('app');
   app.innerHTML = createNavbar() + `
     <div class="app-layout">
