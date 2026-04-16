@@ -126,11 +126,31 @@ public class VoteService {
                 ))
                 .collect(Collectors.toList());
 
+        User user = userRepository.findById(userId).orElse(null);
+        List<PostResponseDto> savedPostDtos = List.of();
+        if (user != null && user.getSavedPosts() != null && !user.getSavedPosts().isEmpty()) {
+            List<Post> savedPostsList = postRepository.findAllById(user.getSavedPosts());
+            savedPostDtos = savedPostsList.stream()
+                .map(post -> new PostResponseDto(
+                    post.getId(),
+                    post.getContent(),
+                    post.getAuthorUsername(),
+                    post.getAuthorId(),
+                    post.getTags() != null ? post.getTags() : List.of(),
+                    post.getVoteCount() != null ? post.getVoteCount() : 0,
+                    post.getCommentCount() != null ? post.getCommentCount() : 0,
+                    post.getCreatedAt(),
+                    post.getSavedCount() != null ? post.getSavedCount() : 0
+                ))
+                .collect(Collectors.toList());
+        }
+
         return Map.of(
                 "posts", likedPostDtos,
                 "userPosts", userPostDtos,
                 "postCount", postCount,
-                "voteCount", likedPostIds.size()
+                "voteCount", likedPostIds.size(),
+                "savedPosts", savedPostDtos
         );
     }
 
