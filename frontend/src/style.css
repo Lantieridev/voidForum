@@ -132,6 +132,12 @@ body {
   color: var(--violet-accent);
 }
 
+.navbar-logo-img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
 .navbar-actions {
   display: flex;
   align-items: center;

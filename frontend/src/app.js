@@ -93,7 +93,7 @@ function createNavbar() {
   return `
     <nav class="navbar">
       <div class="navbar-logo" onclick="window.navigateTo('feed')">
-        ${icons.logo}
+        <img src="/img/logo.png" alt="VoidForum" class="navbar-logo-img" />
         <span>VoidForum</span>
       </div>
       <div class="navbar-actions">
