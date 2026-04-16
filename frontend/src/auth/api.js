@@ -176,4 +176,38 @@ export const usersApi = {
   },
 };
 
+export const followApi = {
+  follow: async (userId) => {
+    return request(`/users/${userId}/follow`, {
+      method: 'POST',
+    });
+  },
+
+  unfollow: async (userId) => {
+    return request(`/users/${userId}/follow`, {
+      method: 'DELETE',
+    });
+  },
+
+  getFollowers: async (userId) => {
+    return request(`/users/${userId}/followers`);
+  },
+
+  getFollowing: async (userId) => {
+    return request(`/users/${userId}/following`);
+  },
+
+  isFollowing: async (userId) => {
+    return request(`/users/${userId}/isfollowing`);
+  },
+
+  getMyFollowingIds: async () => {
+    return request('/users/me/following');
+  },
+
+  getFeed: async () => {
+    return request('/posts/feed');
+  },
+};
+
 export { ApiError };

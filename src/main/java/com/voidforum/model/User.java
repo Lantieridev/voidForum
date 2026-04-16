@@ -37,6 +37,15 @@ public class User {
     @Builder.Default
     private boolean notifyMentions = true;
 
+    @Builder.Default
+    private List<String> followingIds = new ArrayList<>();
+
+    @Builder.Default
+    private int followerCount = 0;
+
+    @Builder.Default
+    private int followingCount = 0;
+
     private LocalDateTime createdAt;
     
     @Builder.Default

@@ -107,29 +107,62 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public User savePost(String userId, String postId) {
-        User user = findById(userId);
-        if (user.getSavedPosts() == null) {
-            user.setSavedPosts(new java.util.ArrayList<>());
+    public void follow(String currentUsername, String targetUserId) {
+        User currentUser = findByUsername(currentUsername);
+        User targetUser = findById(targetUserId);
+
+        if (currentUser.getId().equals(targetUserId)) {
+            throw new RuntimeException("No puedes seguirte a ti mismo");
         }
-        if (!user.getSavedPosts().contains(postId)) {
-            user.getSavedPosts().add(postId);
-            return userRepository.save(user);
+
+        if (currentUser.getFollowingIds() == null) {
+            currentUser.setFollowingIds(new java.util.ArrayList<>());
         }
-        return user;
+
+        if (currentUser.getFollowingIds().contains(targetUserId)) {
+            throw new RuntimeException("Ya sigues a este usuario");
+        }
+
+        currentUser.getFollowingIds().add(targetUserId);
+        currentUser.setFollowingCount(currentUser.getFollowingCount() + 1);
+        userRepository.save(currentUser);
+
+        targetUser.setFollowerCount(targetUser.getFollowerCount() + 1);
+        userRepository.save(targetUser);
     }
 
-    public User unsavePost(String userId, String postId) {
-        User user = findById(userId);
-        if (user.getSavedPosts() != null && user.getSavedPosts().contains(postId)) {
-            user.getSavedPosts().remove(postId);
-            return userRepository.save(user);
+    public void unfollow(String currentUsername, String targetUserId) {
+        User currentUser = findByUsername(currentUsername);
+        User targetUser = findById(targetUserId);
+
+        if (currentUser.getFollowingIds() == null || !currentUser.getFollowingIds().contains(targetUserId)) {
+            throw new RuntimeException("No sigues a este usuario");
         }
-        return user;
+
+        currentUser.getFollowingIds().remove(targetUserId);
+        currentUser.setFollowingCount(Math.max(0, currentUser.getFollowingCount() - 1));
+        userRepository.save(currentUser);
+
+        targetUser.setFollowerCount(Math.max(0, targetUser.getFollowerCount() - 1));
+        userRepository.save(targetUser);
     }
 
-    public List<String> getSavedPosts(String userId) {
+    public boolean isFollowing(String currentUsername, String targetUserId) {
+        User currentUser = findByUsername(currentUsername);
+        return currentUser.getFollowingIds() != null && currentUser.getFollowingIds().contains(targetUserId);
+    }
+
+    public List<User> getFollowers(String userId) {
+        return userRepository.findByFollowingId(userId);
+    }
+
+    public List<User> getFollowing(String userId) {
         User user = findById(userId);
-        return user.getSavedPosts() != null ? user.getSavedPosts() : List.of();
+        return userRepository.findAllById(user.getFollowingIds());
+    }
+
+    public List<String> getFollowingIds(String username) {
+        User user = findByUsername(username);
+        return user.getFollowingIds() != null ? user.getFollowingIds() : new java.util.ArrayList<>();
     }
 }
