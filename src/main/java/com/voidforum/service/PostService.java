@@ -10,7 +10,6 @@ import com.voidforum.repository.PostRepository;
 import com.voidforum.repository.UserRepository;
 import com.voidforum.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 
@@ -43,7 +42,7 @@ public class PostService {
     }
 
     public List<PostResponseDto> getAllPosts() {
-        return postRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")).stream()
+        return postRepository.findAll().stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }
@@ -72,26 +71,15 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-    public List<PostResponseDto> getPostsByIds(List<String> ids) {
-        return postRepository.findByIdIn(ids).stream()
+    public List<PostResponseDto> getFeed(List<String> followingIds) {
+        return postRepository.findByAuthorIdIn(followingIds).stream()
+                .sorted((p1, p2) -> {
+                    if (p1.getCreatedAt() == null) return 1;
+                    if (p2.getCreatedAt() == null) return -1;
+                    return p2.getCreatedAt().compareTo(p1.getCreatedAt());
+                })
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
-    }
-
-    public Post incrementSavedCount(String postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
-        post.setSavedCount((post.getSavedCount() != null ? post.getSavedCount() : 0) + 1);
-        return postRepository.save(post);
-    }
-
-    public Post decrementSavedCount(String postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
-        if (post.getSavedCount() != null && post.getSavedCount() > 0) {
-            post.setSavedCount(post.getSavedCount() - 1);
-        }
-        return postRepository.save(post);
     }
 
     public PostResponseDto updatePost(String id, PostCreateDto postRequest, String currentUsername) {
@@ -143,8 +131,7 @@ public class PostService {
                 post.getTags() != null ? post.getTags() : java.util.List.of(),
                 post.getVoteCount() != null ? post.getVoteCount() : 0,
                 post.getCommentCount() != null ? post.getCommentCount() : 0,
-                post.getCreatedAt() != null ? post.getCreatedAt() : java.time.LocalDateTime.now(),
-                post.getSavedCount() != null ? post.getSavedCount() : 0
+                post.getCreatedAt() != null ? post.getCreatedAt() : java.time.LocalDateTime.now()
         );
     }
 }
