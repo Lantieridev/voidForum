@@ -99,31 +99,51 @@ public class VoteService {
         int postCount = userCreatedPosts.size();
 
         List<PostResponseDto> likedPostDtos = likedPosts.stream()
-                .map(post -> new PostResponseDto(
-                        post.getId(),
-                        post.getContent(),
-                        post.getAuthorUsername(),
-                        post.getAuthorId(),
-                        post.getTags(),
-                        post.getVoteCount(),
-                        post.getCommentCount() != null ? post.getCommentCount() : 0,
-                        post.getCreatedAt(),
-                        post.getSavedCount() != null ? post.getSavedCount() : 0
-                ))
+                .map(post -> {
+                    String authorDisplayName = null;
+                    if (post.getAuthorId() != null) {
+                        var author = userRepository.findById(post.getAuthorId()).orElse(null);
+                        if (author != null) {
+                            authorDisplayName = author.getDisplayName();
+                        }
+                    }
+                    return new PostResponseDto(
+                            post.getId(),
+                            post.getContent(),
+                            post.getAuthorUsername(),
+                            post.getAuthorId(),
+                            post.getTags(),
+                            post.getVoteCount(),
+                            post.getCommentCount() != null ? post.getCommentCount() : 0,
+                            post.getCreatedAt(),
+                            post.getSavedCount() != null ? post.getSavedCount() : 0,
+                            authorDisplayName
+                    );
+                })
                 .collect(Collectors.toList());
 
         List<PostResponseDto> userPostDtos = userCreatedPosts.stream()
-                .map(post -> new PostResponseDto(
-                        post.getId(),
-                        post.getContent(),
-                        post.getAuthorUsername(),
-                        post.getAuthorId(),
-                        post.getTags(),
-                        post.getVoteCount(),
-                        post.getCommentCount() != null ? post.getCommentCount() : 0,
-                        post.getCreatedAt(),
-                        post.getSavedCount() != null ? post.getSavedCount() : 0
-                ))
+                .map(post -> {
+                    String authorDisplayName = null;
+                    if (post.getAuthorId() != null) {
+                        var author = userRepository.findById(post.getAuthorId()).orElse(null);
+                        if (author != null) {
+                            authorDisplayName = author.getDisplayName();
+                        }
+                    }
+                    return new PostResponseDto(
+                            post.getId(),
+                            post.getContent(),
+                            post.getAuthorUsername(),
+                            post.getAuthorId(),
+                            post.getTags(),
+                            post.getVoteCount(),
+                            post.getCommentCount() != null ? post.getCommentCount() : 0,
+                            post.getCreatedAt(),
+                            post.getSavedCount() != null ? post.getSavedCount() : 0,
+                            authorDisplayName
+                    );
+                })
                 .collect(Collectors.toList());
 
         User user = userRepository.findById(userId).orElse(null);
@@ -131,17 +151,27 @@ public class VoteService {
         if (user != null && user.getSavedPosts() != null && !user.getSavedPosts().isEmpty()) {
             List<Post> savedPostsList = postRepository.findAllById(user.getSavedPosts());
             savedPostDtos = savedPostsList.stream()
-                .map(post -> new PostResponseDto(
-                    post.getId(),
-                    post.getContent(),
-                    post.getAuthorUsername(),
-                    post.getAuthorId(),
-                    post.getTags() != null ? post.getTags() : List.of(),
-                    post.getVoteCount() != null ? post.getVoteCount() : 0,
-                    post.getCommentCount() != null ? post.getCommentCount() : 0,
-                    post.getCreatedAt(),
-                    post.getSavedCount() != null ? post.getSavedCount() : 0
-                ))
+                .map(post -> {
+                    String authorDisplayName = null;
+                    if (post.getAuthorId() != null) {
+                        var author = userRepository.findById(post.getAuthorId()).orElse(null);
+                        if (author != null) {
+                            authorDisplayName = author.getDisplayName();
+                        }
+                    }
+                    return new PostResponseDto(
+                        post.getId(),
+                        post.getContent(),
+                        post.getAuthorUsername(),
+                        post.getAuthorId(),
+                        post.getTags() != null ? post.getTags() : List.of(),
+                        post.getVoteCount() != null ? post.getVoteCount() : 0,
+                        post.getCommentCount() != null ? post.getCommentCount() : 0,
+                        post.getCreatedAt(),
+                        post.getSavedCount() != null ? post.getSavedCount() : 0,
+                        authorDisplayName
+                    );
+                })
                 .collect(Collectors.toList());
         }
 

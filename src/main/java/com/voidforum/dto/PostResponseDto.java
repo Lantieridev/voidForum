@@ -12,5 +12,6 @@ public record PostResponseDto(
         int voteCount,
         int commentCount,
         LocalDateTime createdAt,
-        int savedCount
+        int savedCount,
+        String authorDisplayName
 ) {}

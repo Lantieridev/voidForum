@@ -150,6 +150,14 @@ public class PostService {
     }
 
     private PostResponseDto mapToResponseDto(Post post) {
+        String authorDisplayName = null;
+        if (post.getAuthorId() != null) {
+            var author = userRepository.findById(post.getAuthorId()).orElse(null);
+            if (author != null) {
+                authorDisplayName = author.getDisplayName();
+            }
+        }
+        
         return new PostResponseDto(
                 post.getId(),
                 post.getContent() != null ? post.getContent() : "",
@@ -159,7 +167,8 @@ public class PostService {
                 post.getVoteCount() != null ? post.getVoteCount() : 0,
                 post.getCommentCount() != null ? post.getCommentCount() : 0,
                 post.getCreatedAt() != null ? post.getCreatedAt() : java.time.LocalDateTime.now(),
-                post.getSavedCount() != null ? post.getSavedCount() : 0
+                post.getSavedCount() != null ? post.getSavedCount() : 0,
+                authorDisplayName
         );
     }
 }
