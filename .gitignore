@@ -33,3 +33,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Devcontainer local config (no commitear)
+.devcontainer/env.local
+.devcontainer/*.env
