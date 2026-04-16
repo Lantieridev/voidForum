@@ -32,4 +32,30 @@ public class UserService {
         return userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
     }
+
+    public User savePost(String userId, String postId) {
+        User user = findById(userId);
+        if (user.getSavedPosts() == null) {
+            user.setSavedPosts(new java.util.ArrayList<>());
+        }
+        if (!user.getSavedPosts().contains(postId)) {
+            user.getSavedPosts().add(postId);
+            return userRepository.save(user);
+        }
+        return user;
+    }
+
+    public User unsavePost(String userId, String postId) {
+        User user = findById(userId);
+        if (user.getSavedPosts() != null && user.getSavedPosts().contains(postId)) {
+            user.getSavedPosts().remove(postId);
+            return userRepository.save(user);
+        }
+        return user;
+    }
+
+    public List<String> getSavedPosts(String userId) {
+        User user = findById(userId);
+        return user.getSavedPosts() != null ? user.getSavedPosts() : List.of();
+    }
 }

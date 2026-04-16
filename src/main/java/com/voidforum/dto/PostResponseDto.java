@@ -10,5 +10,6 @@ public record PostResponseDto(
         String authorId,
         List<String> tags,
         int voteCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        int savedCount
 ) {}
