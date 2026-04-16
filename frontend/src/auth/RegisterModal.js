@@ -20,8 +20,9 @@ export function closeRegisterModal() {
 }
 
 export function switchToLogin() {
+  const callback = onSwitchToLoginCallback;
   closeRegisterModal();
-  onSwitchToLoginCallback?.();
+  callback?.();
 }
 
 function render() {
