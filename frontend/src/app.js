@@ -262,7 +262,7 @@ function createFeed() {
             <span class="prompt">>>></span>
             <textarea 
               id="composerInput"
-              placeholder="Iniciar transmisión..." 
+              placeholder="Crear post..." 
               rows="1"
               oninput="autoGrow(this)"
             ></textarea>
@@ -279,7 +279,7 @@ function createFeed() {
           </div>
           <div class="tags-preview composer-tags-preview" id="composerTagsPreview"></div>
           <div class="composer-actions">
-            <button class="btn-void" id="composerSubmitBtn" onclick="handleComposerSubmit()">TRANSMITIR</button>
+            <button class="btn-void" id="composerSubmitBtn" onclick="handleComposerSubmit()">CREAR POST</button>
           </div>
         </div>
       </section>
