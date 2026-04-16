@@ -3,6 +3,8 @@ import { init as initAuth, onAuthChange, logout as authLogout, isAuthenticated, 
 import { openLoginModal } from './auth/LoginModal.js';
 import { openRegisterModal } from './auth/RegisterModal.js';
 import { showRequireAuthCard } from './auth/requireAuth.js';
+
+const API_BASE_URL = 'http://localhost:8082/api';
 import { authApi, votesApi, postsApi } from './auth/api.js';
 import { openCreatePostModal } from './posts/CreatePostModal.js';
 import { openEditPostModal } from './posts/EditPostModal.js';
@@ -92,14 +94,84 @@ function createNavbar() {
 }
 
 function createSearchBar() {
+  const searchValue = window.isSearching ? window.lastSearchQuery || '' : '';
   return `
     <div class="search-container">
       <div class="search-box">
         <span class="search-icon">${icons.search}</span>
-        <input type="text" class="search-input" placeholder="Buscar posts, usuarios, tags..." />
+        <input type="text" id="searchInput" class="search-input" placeholder="Buscar posts, usuarios, tags..." value="${searchValue}" />
       </div>
     </div>
   `;
+}
+
+let searchTimeout;
+
+function initSearch() {
+  const searchInput = document.getElementById('searchInput');
+  if (!searchInput) return;
+
+  searchInput.addEventListener('keydown', async (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const query = searchInput.value.trim();
+      
+      if (query.length === 0) {
+        await loadPosts();
+        window.isSearching = false;
+        window.searchResults = [];
+        render();
+      } else {
+        await searchPosts(query);
+      }
+    }
+  });
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.trim();
+    if (query.length === 0) {
+      window.isSearching = false;
+      window.searchResults = [];
+    }
+  });
+}
+
+async function searchPosts(query) {
+  try {
+    let endpoint = '';
+    let searchType = '';
+
+    if (query.startsWith('#')) {
+      const tag = query.slice(1).trim();
+      if (tag) {
+        endpoint = `${API_BASE_URL}/posts/search/by-tag?tag=${encodeURIComponent(tag)}`;
+        searchType = `hashtag #${tag}`;
+      }
+    } else if (query.startsWith('@')) {
+      const username = query.slice(1).trim();
+      if (username) {
+        endpoint = `${API_BASE_URL}/posts/search/by-author?username=${encodeURIComponent(username)}`;
+        searchType = `usuario @${username}`;
+      }
+    } else {
+      endpoint = `${API_BASE_URL}/posts/search/by-content?content=${encodeURIComponent(query)}`;
+      searchType = `contenido "${query}"`;
+    }
+
+    if (endpoint) {
+      const response = await fetch(endpoint);
+      if (response.ok) {
+        const posts = await response.json();
+        window.searchResults = posts;
+        window.isSearching = true;
+        window.lastSearchQuery = query;
+        window.lastSearchType = searchType;
+        render();
+      }
+    }
+  } catch (error) {
+    console.error('Error searching posts:', error);
+  }
 }
 
 function createPostCard(post, showActions = true) {
@@ -161,6 +233,10 @@ function createPostCard(post, showActions = true) {
 }
 
 function createFeed() {
+  const displayPosts = window.isSearching ? (window.searchResults || []) : posts;
+  const searchLabel = window.isSearching ? 
+    `<div class="search-results-label"><span class="label-text">Resultado de búsqueda:</span><span class="search-term">${window.lastSearchQuery || ''}</span></div>` : '';
+  
   return `
     <main class="content-wrapper">
       <section class="glass-plate composer">
@@ -190,11 +266,22 @@ function createFeed() {
           </div>
         </div>
       </section>
+      ${searchLabel}
       <div class="stream">
-        ${posts.length > 0 ? posts.map(post => createPostCard(post)).join('') : '<p class="no-posts">No hay posts aún.</p>'}
+        ${displayPosts.length > 0 ? displayPosts.map(post => createPostCard(post)).join('') : '<p class="no-posts">No hay posts aún.</p>'}
       </div>
     </main>
   `;
+}
+
+function clearSearch() {
+  window.isSearching = false;
+  window.searchResults = [];
+  window.lastSearchQuery = '';
+  window.lastSearchType = '';
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) searchInput.value = '';
+  loadPosts().then(() => render());
 }
 
 function autoGrow(element) {
@@ -844,6 +931,7 @@ function render() {
   currentView = 'feed';
   const app = document.getElementById('app');
   app.innerHTML = createNavbar() + createSearchBar() + createFeed() + createFAB();
+  initSearch();
   attachEventListeners();
   attachScrollListener();
   
