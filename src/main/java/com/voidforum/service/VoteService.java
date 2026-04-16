@@ -107,7 +107,8 @@ public class VoteService {
                         post.getTags(),
                         post.getVoteCount(),
                         post.getCommentCount() != null ? post.getCommentCount() : 0,
-                        post.getCreatedAt()
+                        post.getCreatedAt(),
+                        post.getSavedCount() != null ? post.getSavedCount() : 0
                 ))
                 .collect(Collectors.toList());
 
@@ -120,7 +121,8 @@ public class VoteService {
                         post.getTags(),
                         post.getVoteCount(),
                         post.getCommentCount() != null ? post.getCommentCount() : 0,
-                        post.getCreatedAt()
+                        post.getCreatedAt(),
+                        post.getSavedCount() != null ? post.getSavedCount() : 0
                 ))
                 .collect(Collectors.toList());
 
