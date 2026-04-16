@@ -1605,28 +1605,25 @@ window.showUserFollowing = () => {
 };
 
 window.showMyFollowers = () => {
-  userFollowersModal(myFollowers);
+  userFollowersModal(myFollowers, 'Seguidores');
 };
 
 window.showMyFollowing = () => {
-  userFollowersModal(myFollowing);
+  userFollowersModal(myFollowing, 'Siguiendo');
 };
 
-function userFollowersModal(users) {
-  if (!users || users.length === 0) {
-    alert('No hay usuarios para mostrar.');
-    return;
-  }
-
-  const usersHtml = users.map(u => `
-    <div class="user-list-item" onclick="window.navigateToUser('${u.id}')">
-      <div class="user-list-avatar">${getInitials(u.displayName || u.username)}</div>
-      <div class="user-list-info">
-        <div class="user-list-name">${u.displayName || u.username}</div>
-        <div class="user-list-username">@${u.username}</div>
-      </div>
-    </div>
-  `).join('');
+function userFollowersModal(users, title = 'Usuarios') {
+  const usersHtml = users && users.length > 0 
+    ? users.map(u => `
+        <div class="user-list-item" onclick="window.navigateToUser('${u.id}')">
+          <div class="user-list-avatar">${getInitials(u.displayName || u.username)}</div>
+          <div class="user-list-info">
+            <div class="user-list-name">${u.displayName || u.username}</div>
+            <div class="user-list-username">@${u.username}</div>
+          </div>
+        </div>
+      `).join('')
+    : '<p class="empty-list-message">No hay usuarios para mostrar.</p>';
 
   const modal = document.createElement('div');
   modal.className = 'modal-overlay';
@@ -1634,7 +1631,7 @@ function userFollowersModal(users) {
   modal.innerHTML = `
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Usuarios</h3>
+        <h3>${title}</h3>
         <button class="modal-close" onclick="document.getElementById('userListModal').remove()">×</button>
       </div>
       <div class="modal-body">
