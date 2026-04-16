@@ -81,10 +81,6 @@ function createNavbar() {
           <span>Mi perfil</span>
         </button>
         <div class="dropdown-divider"></div>
-        <button class="dropdown-item" id="settingsBtn">
-          ${icons.settings}
-          <span>Configuración</span>
-        </button>
         <button class="dropdown-item" id="logoutBtn">
           ${icons.logout}
           <span>Cerrar sesión</span>
@@ -737,6 +733,33 @@ async function renderProfile() {
   loadProfileData();
 }
 
+async function renderSaved() {
+  currentView = 'saved';
+  const app = document.getElementById('app');
+  app.innerHTML = createNavbar() + `
+    <div class="app-layout">
+      ${createSidebar()}
+      <div class="main-content">
+        <div class="content-wrapper">
+          <h2 class="page-title">Posts Guardados</h2>
+          <div class="saved-container">
+            ${renderSavedContent()}
+          </div>
+        </div>
+      </div>
+    </div>
+  ` + createFAB();
+  attachCommonEvents();
+  attachScrollListener();
+}
+
+function renderSavedContent() {
+  if (savedPosts.length === 0) {
+    return '<p class="empty-message">No tienes posts guardados todavía.</p>';
+  }
+  return savedPosts.map(post => createPostCard(post)).join('');
+}
+
 async function loadProfileData() {
   try {
     const response = await votesApi.getUserVotedPosts();
@@ -1074,6 +1097,9 @@ window.navigateTo = (view) => {
   if (view === 'profile') {
     window.history.pushState({ view: 'profile' }, '', '#/profile');
     renderProfile();
+  } else if (view === 'saved') {
+    window.history.pushState({ view: 'saved' }, '', '#/saved');
+    renderSaved();
   } else {
     window.history.pushState({ view: 'feed' }, '', window.location.pathname);
     render();
