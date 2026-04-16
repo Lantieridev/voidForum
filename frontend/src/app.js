@@ -1642,12 +1642,12 @@ function userFollowersModal(users, title = 'Usuarios') {
   document.body.appendChild(modal);
 }
 
-function closeUserListModal() {
+window.closeUserListModal = function() {
   const modal = document.getElementById('userListModal');
   if (modal) {
     modal.remove();
   }
-}
+};
 
 window.quickFollow = async (userId, username) => {
   if (!window.isLoggedIn) {
