@@ -9,7 +9,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Data
 @Builder
 @Document(collection = "votes")
-@CompoundIndex(name = "user_target_idx", def = "{'userId': 1, 'targetId': 1}", unique = true)
+// @CompoundIndex(name = "user_target_idx", def = "{'userId': 1, 'targetId': 1}", unique = true)
 public class Vote {
     @Id
     private String id;
