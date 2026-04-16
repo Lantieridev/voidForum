@@ -56,4 +56,14 @@ public class VoteController {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
+
+    @PostMapping("/cleanup")
+    public ResponseEntity<?> cleanupDuplicateVotes() {
+        try {
+            Map<String, Object> result = voteService.cleanupDuplicateVotes();
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
 }
