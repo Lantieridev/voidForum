@@ -6,8 +6,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface VoteRepository extends MongoRepository<Vote, String> {
-    Optional<Vote> findByUserIdAndTargetId(String userId, String targetId);
-    List<Vote> findAllByTargetId(String targetId);
-    void deleteAllByTargetId(String targetId);
+    Optional<Vote> findByUserIdAndTargetIdAndTargetType(String userId, String targetId, String targetType);
+    List<Vote> findAllByTargetIdAndTargetType(String targetId, String targetType);
+    void deleteAllByTargetIdAndTargetType(String targetId, String targetType);
+    List<Vote> findAllByUserIdAndTargetType(String userId, String targetType);
     List<Vote> findAllByUserId(String userId);
 }

@@ -893,6 +893,126 @@ body {
   padding: 20px;
 }
 
+/* --- COMMENT FORM --- */
+.comment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--glass-border-white);
+}
+
+.comment-input,
+.reply-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--glass-border-white);
+  border-radius: var(--border-radius);
+  background: var(--bg-secondary);
+  color: var(--text-main);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.comment-input:focus,
+.reply-input:focus {
+  outline: none;
+  border-color: var(--violet-accent);
+}
+
+.comment-submit-btn,
+.reply-submit-btn {
+  align-self: flex-end;
+  padding: 8px 20px;
+  background: var(--violet-accent);
+  border: none;
+  border-radius: var(--border-radius);
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.2s;
+}
+
+.comment-submit-btn:hover,
+.reply-submit-btn:hover {
+  background: var(--violet-glow);
+}
+
+.comment-submit-btn:disabled,
+.reply-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* --- COMMENT CARD --- */
+.comment-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.comment-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--border-radius);
+  transition: all 0.2s;
+}
+
+.comment-action:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-main);
+}
+
+.comment-action.vote-up.active {
+  color: var(--success);
+}
+
+.comment-action.vote-down.active {
+  color: var(--danger);
+}
+
+.comment-action.reply-btn:hover {
+  color: var(--violet-accent);
+}
+
+.comment-action.delete-btn:hover {
+  color: var(--danger);
+}
+
+.comment-action svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* --- REPLIES --- */
+.comment-replies {
+  margin-left: 30px;
+  margin-top: 12px;
+  padding-left: 16px;
+  border-left: 2px solid var(--glass-border-violet);
+}
+
+.reply-form {
+  margin-top: 12px;
+}
+
 /* --- FLOATING ACTION BUTTON --- */
 .create-post-btn {
   position: fixed;
