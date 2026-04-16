@@ -87,16 +87,31 @@ function attachEvents() {
   closeBtn?.addEventListener('click', closeCreatePostModal);
 
   tagsInput?.addEventListener('input', (e) => {
-    const value = e.target.value;
-    const lastTag = value.split(',').pop().trim();
+    const input = e.target;
+    const value = input.value;
     
-    if (lastTag.startsWith('#')) {
-      const search = lastTag.slice(1).toLowerCase();
+    const parts = value.split(' ');
+    const lastPart = parts[parts.length - 1];
+    
+    if (lastPart.startsWith('#')) {
+      const search = lastPart.slice(1).toLowerCase();
       const suggestions = POPULAR_TAGS.filter(tag => 
         tag.toLowerCase().includes(search) && 
         !getSelectedTags().includes(tag)
       );
       showSuggestions(suggestions);
+    } else if (lastPart === '' && parts.length > 1) {
+      const previousPart = parts[parts.length - 2];
+      if (previousPart.startsWith('#') && previousPart.length > 1) {
+        const tagToAdd = previousPart.slice(1).trim();
+        if (tagToAdd && !getSelectedTags().includes(tagToAdd)) {
+          const tags = getSelectedTags();
+          tags.push(tagToAdd);
+          input.value = tags.map(t => `#${t}`).join(' ') + ' ';
+          updateTagsPreview();
+          hideSuggestions();
+        }
+      }
     } else {
       hideSuggestions();
     }
@@ -187,7 +202,7 @@ function addTag(tag) {
   
   if (!tags.includes(tag)) {
     tags.push(tag);
-    input.value = tags.map(t => `#${t}`).join(', ') + (tags.length > 0 ? ', ' : '');
+    input.value = tags.map(t => `#${t}`).join(' ') + ' ';
   }
   
   updateTagsPreview();
@@ -200,14 +215,14 @@ function getSelectedTags() {
   if (!input) return [];
   
   return input.value
-    .split(',')
+    .split(' ')
     .map(t => t.trim().replace(/^#/, ''))
     .filter(t => t.length > 0);
 }
 
 function parseTags(input) {
   return input
-    .split(',')
+    .split(' ')
     .map(t => t.trim().replace(/^#/, '').toLowerCase())
     .filter(t => t.length > 0);
 }
