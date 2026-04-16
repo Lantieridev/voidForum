@@ -18,6 +18,8 @@ public class Comment {
     @Indexed // Acelera la carga de hilos de conversación
     private String postId;
 
+    private String parentCommentId;  // null = comentario principal, != null = reply
+
     private String authorId;
     private String authorUsername;
     private LocalDateTime createdAt;

@@ -6,5 +6,10 @@ public record UserResponseDto(
         String id,
         String username,
         String email,
+        String displayName,
+        String bio,
+        boolean notifyLikes,
+        boolean notifyComments,
+        boolean notifyMentions,
         LocalDateTime createdAt
 ) {}

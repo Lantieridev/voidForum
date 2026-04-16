@@ -49,12 +49,15 @@ export function showRequireAuthCard(action = 'esta acción') {
 
   document.getElementById('requireAuthLogin')?.addEventListener('click', () => {
     closeCard();
-    openLoginModal();
+    openLoginModal(null, () => openRegisterModal(null, () => {
+      closeCard();
+      openLoginModal();
+    }));
   });
 
   document.getElementById('requireAuthRegister')?.addEventListener('click', () => {
     closeCard();
-    openRegisterModal();
+    openRegisterModal(null, () => openLoginModal());
   });
 
   document.getElementById('requireAuthClose')?.addEventListener('click', closeCard);

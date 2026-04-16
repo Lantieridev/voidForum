@@ -21,14 +21,14 @@ public class VoteController {
     public ResponseEntity<?> vote(
             @PathVariable String targetId,
             @RequestParam int value,
+            @RequestParam(defaultValue = "post") String targetType,
             Principal principal) {
         try {
             String username = principal.getName();
             User user = userRepository.findByUsername(username)
                     .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            voteService.toggleVote(targetId, user.getId(), value);
-            int newCount = voteService.getPostVoteCount(targetId);
-            return ResponseEntity.ok(Map.of("votes", newCount));
+            Map<String, Object> result = voteService.toggleVote(targetId, user.getId(), value, targetType);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -48,10 +48,27 @@ public class VoteController {
     }
 
     @GetMapping("/{targetId}/count")
-    public ResponseEntity<?> getVoteCount(@PathVariable String targetId) {
+    public ResponseEntity<?> getVoteCount(
+            @PathVariable String targetId,
+            @RequestParam(defaultValue = "post") String targetType) {
         try {
-            int count = voteService.getPostVoteCount(targetId);
+            int count;
+            if ("comment".equals(targetType)) {
+                count = voteService.getCommentVoteCount(targetId);
+            } else {
+                count = voteService.getPostVoteCount(targetId);
+            }
             return ResponseEntity.ok(Map.of("votes", count));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/cleanup")
+    public ResponseEntity<?> cleanupDuplicateVotes() {
+        try {
+            Map<String, Object> result = voteService.cleanupDuplicateVotes();
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
