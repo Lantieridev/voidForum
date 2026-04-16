@@ -1,6 +1,6 @@
 {
   "name": "VoidForum",
-  "image": "mcr.microsoft.com/devcontainers/java:17",
+  "image": "mcr.microsoft.com/devcontainers/java:17-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {}
   },
@@ -12,6 +12,6 @@
       ]
     }
   },
-  "postCreateCommand": "cd frontend && npm install",
-  "remoteUser": "java"
+  "postCreateCommand": "apt-get update && apt-get install -y maven && cd frontend && npm install",
+  "remoteUser": "root"
 }
