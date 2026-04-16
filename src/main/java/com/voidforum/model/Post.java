@@ -31,4 +31,7 @@ public class Post {
 
     @Builder.Default
     private Integer voteCount = 0;
+
+    @Builder.Default
+    private Integer commentCount = 0;
 }

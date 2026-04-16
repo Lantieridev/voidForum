@@ -24,10 +24,17 @@ async function request(endpoint, options = {}) {
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    const data = await response.json();
+    const text = await response.text();
+
+    let data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch {
+      data = { error: text };
+    }
 
     if (!response.ok) {
-      throw new ApiError(data.error || 'Error en la solicitud', response.status);
+      throw new ApiError(data.error || `Error HTTP ${response.status}: ${text}`, response.status);
     }
 
     return data;
@@ -35,7 +42,7 @@ async function request(endpoint, options = {}) {
     if (error instanceof ApiError) {
       throw error;
     }
-    throw new ApiError('Error de conexión con el servidor', 0);
+    throw new ApiError('Error de conexión con el servidor: ' + error.message, 0);
   }
 }
 
@@ -98,10 +105,10 @@ export const commentsApi = {
     return request(`/comments/post/${postId}`);
   },
 
-  create: async (postId, content) => {
+  create: async (postId, content, parentCommentId = null) => {
     return request('/comments', {
       method: 'POST',
-      body: JSON.stringify({ postId, content }),
+      body: JSON.stringify({ postId, content, parentCommentId }),
     });
   },
 
@@ -120,8 +127,8 @@ export const commentsApi = {
 };
 
 export const votesApi = {
-  vote: async (targetId, value) => {
-    return request(`/votes/${targetId}?value=${value}`, {
+  vote: async (targetId, value, targetType = 'post') => {
+    return request(`/votes/${targetId}?value=${value}&targetType=${targetType}`, {
       method: 'POST',
     });
   },
@@ -131,7 +138,11 @@ export const votesApi = {
   },
 
   getPostVoteCount: async (targetId) => {
-    return request(`/votes/${targetId}/count`);
+    return request(`/votes/${targetId}/count?targetType=post`);
+  },
+
+  getCommentVoteCount: async (targetId) => {
+    return request(`/votes/${targetId}/count?targetType=comment`);
   },
 };
 
