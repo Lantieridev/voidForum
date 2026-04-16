@@ -120,9 +120,17 @@ public class PostService {
         }
 
         // --- BORRADO EN CASCADA ---
-        voteRepository.deleteAllByTargetId(postId);      // Borra votos
+        voteRepository.deleteAllByTargetIdAndTargetType(postId, "post");      // Borra votos
         commentRepository.deleteAllByPostId(postId);     // Borra comentarios
         postRepository.deleteById(postId);               // Borra el post
+    }
+
+    public void anonymizeUserPosts(String oldUsername, String newUsername) {
+        List<Post> posts = postRepository.findByAuthorUsername(oldUsername);
+        for (Post post : posts) {
+            post.setAuthorUsername(newUsername);
+        }
+        postRepository.saveAll(posts);
     }
 
     private PostResponseDto mapToResponseDto(Post post) {
@@ -133,6 +141,7 @@ public class PostService {
                 post.getAuthorId() != null ? post.getAuthorId() : "",
                 post.getTags() != null ? post.getTags() : java.util.List.of(),
                 post.getVoteCount() != null ? post.getVoteCount() : 0,
+                post.getCommentCount() != null ? post.getCommentCount() : 0,
                 post.getCreatedAt() != null ? post.getCreatedAt() : java.time.LocalDateTime.now(),
                 post.getSavedCount() != null ? post.getSavedCount() : 0
         );

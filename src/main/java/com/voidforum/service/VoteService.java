@@ -23,14 +23,15 @@ public class VoteService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
 
-    public void vote(String targetId, int value, String username) {
+    public void vote(String targetId, int value, String username, String targetType) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        Vote vote = voteRepository.findByUserIdAndTargetId(user.getId(), targetId)
+        Vote vote = voteRepository.findByUserIdAndTargetIdAndTargetType(user.getId(), targetId, targetType)
                 .orElse(Vote.builder()
                         .userId(user.getId())
                         .targetId(targetId)
+                        .targetType(targetType)
                         .build());
 
         vote.setValue(value);
@@ -38,8 +39,8 @@ public class VoteService {
     }
 
     @Transactional
-    public void toggleVote(String targetId, String userId, int newValue) {
-        Optional<Vote> existingVote = voteRepository.findByUserIdAndTargetId(userId, targetId);
+    public Map<String, Object> toggleVote(String targetId, String userId, int newValue, String targetType) {
+        Optional<Vote> existingVote = voteRepository.findByUserIdAndTargetIdAndTargetType(userId, targetId, targetType);
 
         if (existingVote.isPresent()) {
             Vote vote = existingVote.get();
@@ -53,24 +54,38 @@ public class VoteService {
             Vote newVote = Vote.builder()
                     .userId(userId)
                     .targetId(targetId)
+                    .targetType(targetType)
                     .value(newValue)
                     .build();
             voteRepository.save(newVote);
         }
 
-        postRepository.findById(targetId).ifPresent(post -> {
-            int newVoteCount = voteRepository.findAllByTargetId(targetId)
-                    .stream()
-                    .filter(v -> v.getValue() == 1)
-                    .mapToInt(Vote::getValue)
-                    .sum();
-            post.setVoteCount(newVoteCount);
-            postRepository.save(post);
-        });
+        // Actualizar voto en post si es targetType = post
+        if ("post".equals(targetType)) {
+            postRepository.findById(targetId).ifPresent(post -> {
+                long newVoteCount = voteRepository.findAllByTargetIdAndTargetType(targetId, "post")
+                        .stream()
+                        .filter(v -> v.getValue() == 1)
+                        .count();
+                post.setVoteCount((int) newVoteCount);
+                postRepository.save(post);
+            });
+        }
+
+        int voteCount = getVoteCount(targetId, targetType);
+        int userVote = existingVote.map(v -> {
+            if (v.getValue() == newValue) return 0;
+            return newValue;
+        }).orElse(newValue);
+
+        return Map.of(
+            "voteCount", voteCount,
+            "userVote", userVote
+        );
     }
 
     public Map<String, Object> getUserVotedPosts(String userId) {
-        List<Vote> userVotes = voteRepository.findAllByUserId(userId);
+        List<Vote> userVotes = voteRepository.findAllByUserIdAndTargetType(userId, "post");
 
         List<String> likedPostIds = userVotes.stream()
                 .filter(v -> v.getValue() == 1)
@@ -91,6 +106,7 @@ public class VoteService {
                         post.getAuthorId(),
                         post.getTags(),
                         post.getVoteCount(),
+                        post.getCommentCount() != null ? post.getCommentCount() : 0,
                         post.getCreatedAt(),
                         post.getSavedCount() != null ? post.getSavedCount() : 0
                 ))
@@ -104,6 +120,7 @@ public class VoteService {
                         post.getAuthorId(),
                         post.getTags(),
                         post.getVoteCount(),
+                        post.getCommentCount() != null ? post.getCommentCount() : 0,
                         post.getCreatedAt(),
                         post.getSavedCount() != null ? post.getSavedCount() : 0
                 ))
@@ -118,7 +135,43 @@ public class VoteService {
     }
 
     public int getPostVoteCount(String targetId) {
-        List<Vote> votes = voteRepository.findAllByTargetId(targetId);
-        return votes.stream().filter(v -> v.getValue() == 1).mapToInt(Vote::getValue).sum();
+        return getVoteCount(targetId, "post");
+    }
+
+    public int getCommentVoteCount(String targetId) {
+        return getVoteCount(targetId, "comment");
+    }
+
+    private int getVoteCount(String targetId, String targetType) {
+        List<Vote> votes = voteRepository.findAllByTargetIdAndTargetType(targetId, targetType);
+        return (int) votes.stream().filter(v -> v.getValue() == 1).count();
+    }
+
+    public int getUserVote(String userId, String targetId, String targetType) {
+        return voteRepository.findByUserIdAndTargetIdAndTargetType(userId, targetId, targetType)
+                .map(Vote::getValue)
+                .orElse(0);
+    }
+
+    public Map<String, Object> cleanupDuplicateVotes() {
+        List<Vote> allVotes = voteRepository.findAll();
+        Map<String, List<Vote>> groupedVotes = allVotes.stream()
+                .collect(Collectors.groupingBy(v -> v.getUserId() + "_" + v.getTargetId() + "_" + v.getTargetType()));
+
+        int duplicatesRemoved = 0;
+        for (Map.Entry<String, List<Vote>> entry : groupedVotes.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                Vote keep = entry.getValue().get(0);
+                for (int i = 1; i < entry.getValue().size(); i++) {
+                    voteRepository.delete(entry.getValue().get(i));
+                    duplicatesRemoved++;
+                }
+            }
+        }
+
+        return Map.of(
+                "duplicatesRemoved", duplicatesRemoved,
+                "message", "Votos duplicados limpiados exitosamente"
+        );
     }
 }

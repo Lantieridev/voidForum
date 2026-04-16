@@ -798,6 +798,63 @@ window.handleSave = async (postId) => {
   }
 };
 
+window.handleSave = async (postId) => {
+  if (!isAuthenticated()) {
+    showRequireAuthCard('guardar un post');
+    return;
+  }
+
+  try {
+    const isCurrentlySaved = userSavedPosts[postId] || false;
+    const method = isCurrentlySaved ? 'DELETE' : 'POST';
+    const response = await fetch(`${API_BASE_URL}/users/saved/${postId}`, {
+      method: method,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      userSavedPosts[postId] = data.saved;
+      
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        if (data.saved) {
+          const exists = savedPosts.find(p => p.id === postId);
+          if (!exists) {
+            savedPosts.push({...post});
+          }
+        } else {
+          const idx = savedPosts.findIndex(p => p.id === postId);
+          if (idx !== -1) {
+            savedPosts.splice(idx, 1);
+          }
+        }
+      }
+      
+      const saveBtn = document.querySelector(`.save-btn[data-post-id="${postId}"]`);
+      if (saveBtn) {
+        const saveIcon = saveBtn.querySelector('svg');
+        if (saveIcon) {
+          saveIcon.outerHTML = (data.saved ? icons.bookmarkFilled : icons.bookmark);
+        }
+        const countSpan = saveBtn.querySelector('span');
+        if (countSpan) {
+          countSpan.textContent = data.savedCount || 0;
+        }
+        saveBtn.classList.toggle('active', data.saved);
+      }
+
+      if (currentView === 'profile' && currentProfileTab === 'saved') {
+        updateProfileContent();
+      }
+    }
+  } catch (error) {
+    console.error('Error saving post:', error);
+  }
+};
+
 window.handleCreatePost = () => {
   if (!isAuthenticated()) {
     showRequireAuthCard('crear un post');

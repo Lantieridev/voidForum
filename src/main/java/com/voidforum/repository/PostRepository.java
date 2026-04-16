@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface PostRepository extends MongoRepository<Post, String> {
     List<Post> findByAuthorId(String authorId);
+    List<Post> findByAuthorUsername(String authorUsername);
     List<Post> findByTagsIn(List<String> tags);
     
     @Query("{ $or: [ { 'content': { $regex: ?0, $options: 'i' } }, { 'tags': { $regex: ?0, $options: 'i' } } ] }")
