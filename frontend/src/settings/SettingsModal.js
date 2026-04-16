@@ -243,7 +243,7 @@ function renderDangerTab() {
         <p>¿Estás seguro? Esta acción es irreversible.</p>
         <div class="form-group">
           <label for="deletePassword">Ingresá tu contraseña para confirmar</label>
-          <input type="password" id="deletePassword" required autocomplete="current-password" />
+          <input type="password" id="deletePassword" required autocomplete="off" />
         </div>
         <div class="form-error" id="deleteError" style="display: none;"></div>
         <div class="danger-actions">
