@@ -31,6 +31,26 @@ public class PostController {
         return ResponseEntity.ok(postService.getAllPosts());
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<List<PostResponseDto>> searchPosts(@RequestParam String q) {
+        return ResponseEntity.ok(postService.searchPosts(q));
+    }
+
+    @GetMapping("/search/by-tag")
+    public ResponseEntity<List<PostResponseDto>> searchByTag(@RequestParam String tag) {
+        return ResponseEntity.ok(postService.searchByTag(tag));
+    }
+
+    @GetMapping("/search/by-author")
+    public ResponseEntity<List<PostResponseDto>> searchByAuthor(@RequestParam String username) {
+        return ResponseEntity.ok(postService.searchByAuthor(username));
+    }
+
+    @GetMapping("/search/by-content")
+    public ResponseEntity<List<PostResponseDto>> searchByContent(@RequestParam String content) {
+        return ResponseEntity.ok(postService.searchByContent(content));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePost(@PathVariable String id) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();

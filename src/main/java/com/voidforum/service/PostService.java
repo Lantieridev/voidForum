@@ -46,6 +46,30 @@ public class PostService {
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
     }
+
+    public List<PostResponseDto> searchPosts(String query) {
+        return postRepository.searchPosts(query).stream()
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<PostResponseDto> searchByTag(String tag) {
+        return postRepository.searchByTag(tag).stream()
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<PostResponseDto> searchByAuthor(String username) {
+        return postRepository.searchByAuthor(username).stream()
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<PostResponseDto> searchByContent(String content) {
+        return postRepository.searchByContent(content).stream()
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
+    }
     public PostResponseDto updatePost(String id, PostCreateDto postRequest, String currentUsername) {
         Post post = postRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Post no encontrado"));
