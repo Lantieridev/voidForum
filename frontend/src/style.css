@@ -85,7 +85,7 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 60px;
+  height: 50px;
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -343,19 +343,20 @@ body {
 
 /* --- SEARCH BAR --- */
 .search-container {
-  position: fixed;
-  top: 70px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
   width: 100%;
-  max-width: 500px;
-  padding: 0 20px;
+  max-width: 650px;
+  padding: 20px 0;
+  margin: 0 auto;
   z-index: 999;
   transition: transform 0.3s ease-in-out;
 }
 
 .search-container.search-hidden {
-  transform: translateX(-50%) translateY(-100%);
+  transform: translateY(-100%);
+  height: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .search-box {
@@ -434,11 +435,82 @@ body {
   color: var(--text-main);
 }
 
+/* --- APP LAYOUT --- */
+.app-layout {
+  display: flex;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 60px;
+  min-height: 100vh;
+}
+
+/* --- SIDEBAR --- */
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 50px;
+  height: calc(100vh - 50px);
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  color: var(--text-main);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+}
+
+.sidebar-item:hover {
+  background: var(--plate-bg);
+  color: var(--violet-accent);
+}
+
+.sidebar-item.active {
+  background: rgba(125, 42, 232, 0.15);
+  color: var(--violet-accent);
+  border-left: 3px solid var(--violet-accent);
+}
+
+.sidebar-item svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 /* --- FEED CONTAINER --- */
 .content-wrapper {
+  flex: 1;
   max-width: 650px;
-  margin: 150px auto 0;
+  margin: 0 auto;
   padding: 0 20px 100px;
+  width: 100%;
 }
 
 .feed-container {
@@ -1658,9 +1730,9 @@ body {
 
 /* --- PROFILE --- */
 .profile-container {
+  flex: 1;
   max-width: 800px;
-  margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 20px 100px;
 }
 
 .profile-page {
@@ -1669,7 +1741,7 @@ body {
   border: 1px solid var(--glass-border-white);
   border-radius: var(--border-radius);
   overflow: hidden;
-  margin-top: 80px;
+  margin-top: 20px;
   margin-bottom: 80px;
 }
 
@@ -2015,6 +2087,22 @@ body {
 }
 
 /* --- RESPONSIVE --- */
+@media (max-width: 1000px) {
+  .sidebar {
+    width: 200px;
+  }
+  
+  .sidebar-item {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  
+  .sidebar-item svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 @media (max-width: 900px) {
   .main-container {
     flex-direction: column;

@@ -25,6 +25,7 @@ function updateCommentCount(postId, increment = true) {
 
 const icons = {
   logo: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`,
+  home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
   chevronDown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>`,
   search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
   plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>`,
@@ -74,10 +75,6 @@ function createNavbar() {
           <span>Mi perfil</span>
         </button>
         <div class="dropdown-divider"></div>
-        <button class="dropdown-item" id="settingsBtn">
-          ${icons.settings}
-          <span>Configuración</span>
-        </button>
         <button class="dropdown-item" id="logoutBtn">
           ${icons.logout}
           <span>Cerrar sesión</span>
@@ -119,6 +116,36 @@ function createSearchBar() {
         <input type="text" id="searchInput" class="search-input" placeholder="Buscar posts, usuarios, tags..." value="${searchValue}" />
       </div>
     </div>
+  `;
+}
+
+function createSidebar() {
+  const isLoggedIn = window.isLoggedIn;
+  
+  const navItems = [
+    { icon: icons.home, label: 'Inicio', action: "window.navigateTo('feed')", view: 'feed' },
+    { icon: icons.user, label: 'Perfil', action: "window.navigateTo('profile')", view: 'profile' },
+    { icon: icons.bookmark, label: 'Guardados', action: "window.navigateTo('saved')", view: 'saved' },
+    { icon: icons.settings, label: 'Configuración', action: 'openSettingsModal()', view: null }
+  ];
+
+  const navItemsHtml = navItems.map(item => {
+    const isActive = currentView === item.view || 
+                     (item.view === 'saved' && currentView === 'saved' && savedPosts.length > 0);
+    return `
+      <button class="sidebar-item ${isActive ? 'active' : ''}" onclick="${item.action}">
+        ${item.icon}
+        <span>${item.label}</span>
+      </button>
+    `;
+  }).join('');
+
+  return `
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        ${navItemsHtml}
+      </nav>
+    </aside>
   `;
 }
 
@@ -634,8 +661,11 @@ function renderProfile() {
 
   const app = document.getElementById('app');
   app.innerHTML = createNavbar() + `
-    <div class="profile-container">
-      ${createProfilePage()}
+    <div class="app-layout">
+      ${createSidebar()}
+      <div class="profile-container">
+        ${createProfilePage()}
+      </div>
     </div>
   ` + createFAB();
 
@@ -689,6 +719,73 @@ function attachTabEvents() {
       updateProfileContent();
     });
   });
+}
+
+function createSavedContent() {
+  if (savedPosts.length === 0) {
+    return `
+      <div class="empty-state">
+        ${icons.bookmark}
+        <h3>No tenés posts guardados</h3>
+        <p>Guardá posts para verlos después</p>
+      </div>
+    `;
+  }
+  return savedPosts.map(post => createPostCard(post)).join('');
+}
+
+function renderSaved() {
+  if (!isAuthenticated()) {
+    showRequireAuthCard('ver tus posts guardados');
+    return;
+  }
+
+  currentView = 'saved';
+
+  const app = document.getElementById('app');
+  app.innerHTML = createNavbar() + `
+    <div class="app-layout">
+      ${createSidebar()}
+      <div class="main-content">
+        <div class="content-wrapper">
+          <div class="composer" style="margin-bottom: 30px;">
+            <h2 style="font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; color: var(--text-main);">Posts guardados</h2>
+          </div>
+          <div class="stream">
+            ${createSavedContent()}
+          </div>
+        </div>
+      </div>
+    </div>
+  ` + createFAB();
+
+  attachCommonEvents();
+  attachScrollListener();
+  loadSavedPosts();
+}
+
+async function loadSavedPosts() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/users/saved`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+    if (response.ok) {
+      const data = await response.json();
+      savedPosts = data.savedPosts || [];
+      updateSavedContent();
+    }
+  } catch (error) {
+    console.error('Error loading saved posts:', error);
+  }
+}
+
+function updateSavedContent() {
+  const stream = document.querySelector('.stream');
+  if (stream) {
+    stream.innerHTML = createSavedContent();
+  }
 }
 
 window.handleVote = async (postId, vote) => {
@@ -988,6 +1085,8 @@ window.handleSave = async (postId) => {
 
       if (currentView === 'profile' && currentProfileTab === 'saved') {
         updateProfileContent();
+      } else if (currentView === 'saved') {
+        updateSavedContent();
       }
     }
   } catch (error) {
@@ -1040,6 +1139,9 @@ window.navigateTo = (view) => {
   if (view === 'profile') {
     window.history.pushState({ view: 'profile' }, '', '#/profile');
     renderProfile();
+  } else if (view === 'saved') {
+    window.history.pushState({ view: 'saved' }, '', '#/saved');
+    renderSaved();
   } else {
     window.history.pushState({ view: 'feed' }, '', window.location.pathname);
     render();
@@ -1231,7 +1333,15 @@ function attachCommonEvents() {
 function render() {
   currentView = 'feed';
   const app = document.getElementById('app');
-  app.innerHTML = createNavbar() + createSearchBar() + createFeed() + createFAB();
+  app.innerHTML = createNavbar() + `
+    <div class="app-layout">
+      ${createSidebar()}
+      <div class="main-content">
+        ${createSearchBar()}
+        ${createFeed()}
+      </div>
+    </div>
+  ` + createFAB();
   initSearch();
   attachEventListeners();
   attachScrollListener();
@@ -1253,6 +1363,8 @@ function attachEventListeners() {
 window.refreshUI = () => {
   if (currentView === 'profile') {
     renderProfile();
+  } else if (currentView === 'saved') {
+    renderSaved();
   } else {
     render();
   }
@@ -1278,10 +1390,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('popstate', (event) => {
     if (event.state?.view === 'profile') {
       renderProfile();
+    } else if (event.state?.view === 'saved') {
+      renderSaved();
     } else if (event.state?.postId) {
       renderPostDetail(event.state.postId);
     } else if (window.location.hash.startsWith('#/profile')) {
       renderProfile();
+    } else if (window.location.hash.startsWith('#/saved')) {
+      renderSaved();
     } else if (window.location.hash.startsWith('#post/')) {
       const postId = window.location.hash.replace('#post/', '');
       renderPostDetail(postId);
@@ -1292,6 +1408,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (window.location.hash === '#/profile') {
     renderProfile();
+  } else if (window.location.hash === '#/saved') {
+    renderSaved();
   } else {
     render();
   }
@@ -1386,3 +1504,4 @@ window.icons = icons;
 window.searchByTag = (tagName) => {
   searchPosts('#' + tagName);
 };
+window.openSettingsModal = openSettingsModal;
