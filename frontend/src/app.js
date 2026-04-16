@@ -1050,6 +1050,8 @@ function renderPostDetail(postId) {
 
   currentView = 'detail';
   const voteState = userVotes[post.id] || 0;
+  const currentUser = window.currentUser;
+  const isAuthor = currentUser && (currentUser.id === post.user?.id || currentUser.username === post.user?.username || currentUser.id === post.authorId || currentUser.username === post.authorUsername);
 
   const postDetail = `
     <div class="post-detail-container">
@@ -1059,14 +1061,24 @@ function renderPostDetail(postId) {
       </button>
       <article class="post-card post-full">
         <div class="post-header">
-          <div class="post-avatar">${getInitials(post.user?.displayName || post.user?.username || 'U')}</div>
+          <div class="post-avatar">${getInitials(post.user?.displayName || post.user?.username || post.authorUsername || 'U')}</div>
           <div class="post-user-info">
             <div class="post-username">
-              ${post.user?.displayName || post.user?.username || 'Usuario'}
+              ${post.user?.displayName || post.user?.username || post.authorUsername || 'Usuario'}
               ${post.user?.verified ? `<span class="verified-badge">${icons.verified}</span>` : ''}
             </div>
-            <div class="post-time">@${post.user?.username || 'usuario'} · ${formatTimeAgo(post.createdAt)}</div>
+            <div class="post-time">@${post.user?.username || post.authorUsername || 'usuario'} · ${formatTimeAgo(post.createdAt)}</div>
           </div>
+          ${isAuthor ? `
+            <div class="post-owner-actions">
+              <button class="owner-action-btn edit-btn" data-post-id="${post.id}" onclick="event.stopPropagation(); window.handleEditPost('${post.id}')" title="Editar">
+                ${icons.edit}
+              </button>
+              <button class="owner-action-btn delete-btn" data-post-id="${post.id}" onclick="event.stopPropagation(); window.handleDeletePost('${post.id}')" title="Eliminar">
+                ${icons.trash}
+              </button>
+            </div>
+          ` : ''}
         </div>
         <div class="post-content">${post.content}</div>
         ${post.tags?.length > 0 ? `
