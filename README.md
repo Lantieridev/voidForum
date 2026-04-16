@@ -6,7 +6,7 @@ Foro comunitario creado para el trabajo práctico de Base de Datos II.
 
 - **Frontend**: JavaScript + Tailwind CSS + Vite
 - **Backend**: Java (Spring Boot)
-- **Base de Datos**: MongoDB (Atlas)
+- **Bases de Datos**: MongoDB
 
 ## Estructura del Proyecto
 
@@ -27,17 +27,12 @@ Foro comunitario creado para el trabajo práctico de Base de Datos II.
 └── package.json              # NPM config
 ```
 
-## MongoDB
-
-- **Cluster**: tpgrupo15.g7bd9qy.mongodb.net
-- **Database**: voidforum
-
 ## Requisitos
 
 - Java 17+
 - Maven 3.8+
 - Node.js 18+
-- MongoDB (Atlas)
+- MongoDB
 
 ## Ejecutar el proyecto
 
