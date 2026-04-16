@@ -1127,6 +1127,14 @@ function renderPostDetail(postId) {
 
   currentView = 'detail';
   const voteState = userVotes[post.id] || 0;
+  const currentUser = window.currentUser;
+  const isAuthor = currentUser && (currentUser.id === post.authorId || currentUser.username === post.authorUsername);
+  const isSaved = userSavedPosts[post.id] || false;
+  const savedCount = post.savedCount || 0;
+
+  const authorName = post.authorUsername || 'Usuario';
+  const authorUsername = post.authorUsername || 'usuario';
+  const isDeletedUser = authorUsername && authorUsername.startsWith('[deleted]');
 
   const postDetail = `
     <div class="post-detail-container">
@@ -1136,28 +1144,41 @@ function renderPostDetail(postId) {
       </button>
       <article class="post-card post-full">
         <div class="post-header">
-          <div class="post-avatar">${getInitials(post.user?.displayName || post.user?.username || 'U')}</div>
+          <div class="post-avatar" onclick="window.navigateToUser('${post.authorId}')">${getInitials(authorName)}</div>
           <div class="post-user-info">
-            <div class="post-username">
-              ${post.user?.displayName || post.user?.username || 'Usuario'}
-              ${post.user?.verified ? `<span class="verified-badge">${icons.verified}</span>` : ''}
+            <div class="post-username" onclick="window.navigateToUser('${post.authorId}')">
+              ${authorName}
             </div>
-            <div class="post-time">@${post.user?.username || 'usuario'} · ${formatTimeAgo(post.createdAt)}</div>
+            <div class="post-time">@${authorUsername} · ${formatTimeAgo(post.createdAt)}</div>
           </div>
+          ${isAuthor ? `
+            <div class="post-owner-actions">
+              <button class="owner-action-btn edit-btn" data-post-id="${post.id}" onclick="window.handleEditPost('${post.id}')" title="Editar">
+                ${icons.edit}
+              </button>
+              <button class="owner-action-btn delete-btn" data-post-id="${post.id}" onclick="window.handleDeletePost('${post.id}')" title="Eliminar">
+                ${icons.trash}
+              </button>
+            </div>
+          ` : ''}
         </div>
         <div class="post-content">${post.content}</div>
         ${post.tags?.length > 0 ? `
           <div class="post-tags">
-            ${post.tags.map(tag => `<span class="post-tag tag-${tag}">#${tag}</span>`).join('')}
+            ${post.tags.map(tag => `<span class="post-tag tag-${tag}" onclick="window.searchByTag('${tag}')">#${tag}</span>`).join('')}
           </div>
         ` : ''}
         <div class="post-actions">
           <button class="action-btn vote-up ${voteState === 1 ? 'active' : ''}" data-post-id="${post.id}" data-vote="1" onclick="window.handleVote('${post.id}', 1)">
             ${icons.like}
-            <span>${(post.votes || 0) + voteState}</span>
+            <span>${post.voteCount || 0}</span>
           </button>
           <button class="action-btn vote-down ${voteState === -1 ? 'active' : ''}" data-post-id="${post.id}" data-vote="-1" onclick="window.handleVote('${post.id}', -1)">
             ${icons.dislike}
+          </button>
+          <button class="action-btn save-btn ${isSaved ? 'active' : ''}" data-post-id="${post.id}" onclick="window.handleSave('${post.id}')">
+            ${isSaved ? icons.bookmarkFilled : icons.bookmark}
+            <span>${savedCount}</span>
           </button>
         </div>
       </article>
