@@ -138,6 +138,12 @@ body {
   color: var(--violet-accent);
 }
 
+.navbar-logo-img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
 .navbar-tabs {
   display: flex;
   gap: 4px;

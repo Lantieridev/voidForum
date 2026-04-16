@@ -25,6 +25,7 @@ function updateCommentCount(postId, increment = true) {
 
 const icons = {
   logo: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>`,
+  home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
   chevronDown: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>`,
   search: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>`,
   plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>`,
@@ -52,6 +53,7 @@ const icons = {
 };
 
 let userVotes = {};
+let userSavedPosts = {};
 let currentView = 'feed';
 let userVotedPosts = [];
 let userPostCount = 0;
@@ -110,7 +112,7 @@ function createNavbar() {
     <nav class="navbar">
       <div class="navbar-left">
         <div class="navbar-logo" onclick="window.navigateTo('feed')">
-          ${icons.logo}
+          <img src="/img/logo.png" alt="VoidForum" class="navbar-logo-img" />
           <span>VoidForum</span>
         </div>
         ${feedTabs}
@@ -138,6 +140,36 @@ function createSearchBar() {
         <input type="text" id="searchInput" class="search-input" placeholder="Buscar posts, usuarios, tags..." value="${searchValue}" />
       </div>
     </div>
+  `;
+}
+
+function createSidebar() {
+  const isLoggedIn = window.isLoggedIn;
+  
+  const navItems = [
+    { icon: icons.home, label: 'Inicio', action: "window.navigateTo('feed')", view: 'feed' },
+    { icon: icons.user, label: 'Perfil', action: "window.navigateTo('profile')", view: 'profile' },
+    { icon: icons.bookmark, label: 'Guardados', action: "window.navigateTo('saved')", view: 'saved' },
+    { icon: icons.settings, label: 'Configuración', action: 'openSettingsModal()', view: null }
+  ];
+
+  const navItemsHtml = navItems.map(item => {
+    const isActive = currentView === item.view || 
+                     (item.view === 'saved' && currentView === 'saved' && savedPosts.length > 0);
+    return `
+      <button class="sidebar-item ${isActive ? 'active' : ''}" onclick="${item.action}">
+        ${item.icon}
+        <span>${item.label}</span>
+      </button>
+    `;
+  }).join('');
+
+  return `
+    <aside class="sidebar">
+      <nav class="sidebar-nav">
+        ${navItemsHtml}
+      </nav>
+    </aside>
   `;
 }
 
@@ -212,6 +244,8 @@ async function searchPosts(query) {
 
 function createPostCard(post, showActions = true) {
   const voteState = userVotes[post.id] || 0;
+  const isSaved = userSavedPosts[post.id] || false;
+  const savedCount = post.savedCount || 0;
   const currentUser = window.currentUser;
   const isAuthor = currentUser && (currentUser.id === post.authorId || currentUser.username === post.authorUsername);
   const amIFollowing = userFollowingIds && userFollowingIds.includes ? userFollowingIds.includes(post.authorId) : false;
@@ -263,7 +297,7 @@ function createPostCard(post, showActions = true) {
       <div class="post-content">${post.content}</div>
       ${post.tags?.length > 0 ? `
         <div class="post-tags">
-          ${post.tags.map(tag => `<span class="post-tag tag-${tag}">#${tag}</span>`).join('')}
+          ${post.tags.map(tag => `<span class="post-tag tag-${tag}" onclick="event.stopPropagation(); window.searchByTag('${tag}')">#${tag}</span>`).join('')}
         </div>
       ` : ''}
       ${showActions ? `
@@ -278,6 +312,10 @@ function createPostCard(post, showActions = true) {
           <button class="action-btn comment-btn" data-post-id="${post.id}" onclick="event.stopPropagation(); window.handleComment('${post.id}')">
             ${icons.message}
             <span>${post.commentCount || 0}</span>
+          </button>
+          <button class="action-btn save-btn ${isSaved ? 'active' : ''}" data-post-id="${post.id}" onclick="event.stopPropagation(); window.handleSave('${post.id}')">
+            ${isSaved ? icons.bookmarkFilled : icons.bookmark}
+            <span>${savedCount}</span>
           </button>
           ${followBtn}
         </div>
@@ -1220,7 +1258,15 @@ function attachCommonEvents() {
 function render() {
   currentView = 'feed';
   const app = document.getElementById('app');
-  app.innerHTML = createNavbar() + createSearchBar() + createFeed() + createFAB();
+  app.innerHTML = createNavbar() + `
+    <div class="app-layout">
+      ${createSidebar()}
+      <div class="main-content">
+        ${createSearchBar()}
+        ${createFeed()}
+      </div>
+    </div>
+  ` + createFAB();
   initSearch();
   attachEventListeners();
   attachScrollListener();
@@ -1598,3 +1644,70 @@ async function loadUserFollowingIds() {
     userFollowingIds = [];
   }
 }
+
+window.handleSave = async (postId) => {
+  if (!isAuthenticated()) {
+    showRequireAuthCard('guardar un post');
+    return;
+  }
+
+  try {
+    const isCurrentlySaved = userSavedPosts[postId] || false;
+    const method = isCurrentlySaved ? 'DELETE' : 'POST';
+    const response = await fetch(`${API_BASE_URL}/users/saved/${postId}`, {
+      method: method,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      userSavedPosts[postId] = data.saved;
+      
+      const post = posts.find(p => p.id === postId);
+      if (post) {
+        if (data.saved) {
+          const exists = savedPosts.find(p => p.id === postId);
+          if (!exists) {
+            savedPosts.push({...post});
+          }
+        } else {
+          const idx = savedPosts.findIndex(p => p.id === postId);
+          if (idx !== -1) {
+            savedPosts.splice(idx, 1);
+          }
+        }
+      }
+      
+      const saveBtn = document.querySelector(`.save-btn[data-post-id="${postId}"]`);
+      if (saveBtn) {
+        const saveIcon = saveBtn.querySelector('svg');
+        if (saveIcon) {
+          saveIcon.outerHTML = (data.saved ? icons.bookmarkFilled : icons.bookmark);
+        }
+        const countSpan = saveBtn.querySelector('span');
+        if (countSpan) {
+          countSpan.textContent = data.savedCount || 0;
+        }
+        saveBtn.classList.toggle('active', data.saved);
+      }
+
+      if (currentView === 'profile' && currentProfileTab === 'saved') {
+        updateProfileContent();
+      } else if (currentView === 'saved') {
+        updateSavedContent();
+      }
+    }
+  } catch (error) {
+    console.error('Error saving post:', error);
+  }
+};
+
+window.searchByTag = (tagName) => {
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput) {
+    searchInput.value = `#${tagName}`;
+    searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+  }
+};
