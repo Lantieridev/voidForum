@@ -225,7 +225,7 @@ function createPostCard(post, showActions = true) {
       <div class="post-content">${post.content}</div>
       ${post.tags?.length > 0 ? `
         <div class="post-tags">
-          ${post.tags.map(tag => `<span class="post-tag tag-${tag}">#${tag}</span>`).join('')}
+          ${post.tags.map(tag => `<span class="post-tag tag-${tag}" onclick="event.stopPropagation(); window.searchByTag('${tag}')">#${tag}</span>`).join('')}
         </div>
       ` : ''}
       ${showActions ? `
@@ -1085,7 +1085,7 @@ function renderPostDetail(postId) {
         <div class="post-content">${post.content}</div>
         ${post.tags?.length > 0 ? `
           <div class="post-tags">
-            ${post.tags.map(tag => `<span class="post-tag tag-${tag}">#${tag}</span>`).join('')}
+            ${post.tags.map(tag => `<span class="post-tag tag-${tag}" onclick="event.stopPropagation(); window.searchByTag('${tag}')">#${tag}</span>`).join('')}
           </div>
         ` : ''}
         <div class="post-actions">
@@ -1383,3 +1383,6 @@ window.togglePasswordVisibility = (inputId, toggleId) => {
   }
 };
 window.icons = icons;
+window.searchByTag = (tagName) => {
+  searchPosts('#' + tagName);
+};
