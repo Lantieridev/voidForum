@@ -1,55 +1,88 @@
-# VoidForum
+# 🌌 VoidForum | Community Hub
 
-Foro comunitario creado para el trabajo práctico de Base de Datos II.
+> [!IMPORTANT]
+> **Technical Showcase:** This project is a full-stack community forum implementation utilizing a modern Reactive-ish approach with Spring Boot and MongoDB, developed as a core project for the Database II curriculum.
 
-## Tech Stack
+Welcome to **VoidForum**, a minimalist yet powerful community platform designed for seamless discussion and interaction. Built with a focus on performance, scalability, and modern UX standards.
 
-- **Frontend**: JavaScript + Tailwind CSS + Vite
-- **Backend**: Java (Spring Boot)
-- **Base de Datos**: MongoDB (Atlas)
+---
 
-## Estructura del Proyecto
+## 🚀 Project Overview
 
-```
-├── src/                      # Backend (Java/Spring Boot)
-│   ├── main/java/com/voidforum/
-│   │   ├── config/           # Configuraciones
-│   │   ├── controller/        # Controladores REST
-│   │   ├── model/            # Modelos/Entidades
-│   │   ├── repository/       # Repositorios MongoDB
-│   │   └── service/          # Servicios
-│   └── main/resources/
-│       └── application.properties
-├── frontend/                 # Frontend (Vite + Tailwind)
-│   ├── src/
-│   └── public/
-├── pom.xml                   # Maven config
-└── package.json              # NPM config
-```
+VoidForum serves as a robust foundation for community-driven content. It leverages the flexibility of NoSQL (MongoDB) to handle dynamic discussion threads, user profiles, and real-time interaction patterns.
 
-## MongoDB
+### ✨ Key Features
+*   **Dynamic Threading:** Hierarchical discussion structures.
+*   **Reactive Data Flow:** Optimized data retrieval from MongoDB Atlas.
+*   **Modern Interface:** High-performance frontend built with Vite and Tailwind CSS.
+*   **RESTful Architecture:** Clean, well-documented API endpoints.
 
-- **Cluster**: tpgrupo15.g7bd9qy.mongodb.net
-- **Database**: voidforum
+---
 
-## Requisitos
+## 🛠️ Tech Stack
 
-- Java 17+
-- Maven 3.8+
-- Node.js 18+
-- MongoDB (Atlas)
+### Backend (The Engine)
+*   **Java 17+**: Core language for business logic.
+*   **Spring Boot**: Main framework for RESTful services.
+*   **Spring Data MongoDB**: Object-document mapping and repository layer.
+*   **Maven**: Dependency management and build automation.
 
-## Ejecutar el proyecto
+### Frontend (The Interface)
+*   **JavaScript (ES6+)**: Dynamic client-side logic.
+*   **Vite**: Next-generation frontend tooling.
+*   **Tailwind CSS**: Utility-first CSS framework for custom, modern designs.
 
-### Backend
+### Database
+*   **MongoDB Atlas**: Distributed cloud database for high availability.
+
+---
+
+## 📂 Project Structure
+
 ```bash
-cd src
+├── src/                      # Backend Implementation
+│   ├── main/java/com/voidforum/
+│   │   ├── config/           # Infrastructure & Security configs
+│   │   ├── controller/       # REST Controllers (API Layer)
+│   │   ├── model/            # Domain Entities (MongoDB Collections)
+│   │   ├── repository/       # Data Access Layer
+│   │   └── service/          # Business Logic Layer
+│   └── main/resources/       # Environment Properties
+├── frontend/                 # Client Implementation
+│   ├── src/                  # Components & Logic
+│   └── public/               # Static Assets
+├── pom.xml                   # Backend Manifest
+└── package.json              # Frontend Manifest
+```
+
+---
+
+## ⚙️ Quick Start
+
+### 1. Prerequisites
+*   **Java JDK 17+**
+*   **Maven 3.8+**
+*   **Node.js 18+**
+*   **MongoDB Atlas Cluster** (Configured in `.env` or `application.properties`)
+
+### 2. Backend Setup
+```bash
+# Navigate to root
 mvn spring-boot:run
 ```
 
-### Frontend
+### 3. Frontend Setup
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+
+---
+
+## 📜 Documentation & Notes
+This project is part of a series of academic implementations focused on high-quality software engineering standards. Detailed technical notes and architectural decisions are available in the internal documentation.
+
+---
+
+*Developed by [Martin Lantieri](https://github.com/Lantieridev) - 2026*
