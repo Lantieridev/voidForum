@@ -31,7 +31,7 @@
 
 ### Connection String
 ```properties
-spring.data.mongodb.uri=mongodb+srv://TP_Grupo15:5Cd1S1JjAEcYj4s1@tpgrupo15.g7bd9qy.mongodb.net/voidforum
+spring.data.mongodb.uri=mongodb+srv://<username>:<password>@<your-cluster>.mongodb.net/voidforum
 ```
 
 ### Crear Índices (ejecutar en MongoDB Compass o Mongo Shell)

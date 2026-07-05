@@ -10,7 +10,7 @@ http://localhost:8080/api
 
 - **Host**: tpgrupo15.g7bd9qy.mongodb.net
 - **Database**: voidforum
-- **URI**: `mongodb+srv://TP_Grupo15:5Cd1S1JjAEcYj4s1@tpgrupo15.g7bd9qy.mongodb.net/voidforum`
+- **URI**: `mongodb+srv://<username>:<password>@<your-cluster>.mongodb.net/voidforum` (ver `.env`, nunca commitear valores reales)
 
 ## Autenticación
 
