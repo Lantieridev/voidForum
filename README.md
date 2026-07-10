@@ -1,5 +1,11 @@
 # 🌌 VoidForum | Community Hub
 
+![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2-6DB33F?style=for-the-badge&logo=springboot)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![CI](https://img.shields.io/github/actions/workflow/status/Lantieridev/voidForum/ci.yml?branch=main&style=for-the-badge&label=CI)
+
 > [!IMPORTANT]
 > **Technical Showcase:** This project is a full-stack community forum implementation utilizing a modern Reactive-ish approach with Spring Boot and MongoDB, developed as a core project for the Database II curriculum.
 
@@ -50,7 +56,7 @@ VoidForum serves as a robust foundation for community-driven content. It leverag
 │   └── main/resources/       # Environment Properties
 ├── frontend/                 # Client Implementation
 │   ├── src/                  # Components & Logic
-│   └── public/               # Static Assets
+│   └── img/                  # Static Assets
 ├── pom.xml                   # Backend Manifest
 └── package.json              # Frontend Manifest
 ```
@@ -63,11 +69,15 @@ VoidForum serves as a robust foundation for community-driven content. It leverag
 *   **Java JDK 17+**
 *   **Maven 3.8+**
 *   **Node.js 18+**
-*   **MongoDB Atlas Cluster** (Configured in `.env` or `application.properties`)
+*   **MongoDB Atlas Cluster** (or a local MongoDB instance)
 
 ### 2. Backend Setup
+Spring Boot reads `MONGO_URI`, `JWT_SECRET`, and `JWT_EXPIRATION` straight from the environment (see `.devcontainer/env.template` for the expected format) — export them before running, it won't pick up a `.env` file on its own:
 ```bash
-# Navigate to root
+export MONGO_URI="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/voidforum"
+export JWT_SECRET="<your-own-256-bit-secret>"
+export JWT_EXPIRATION=86400000
+
 mvn spring-boot:run
 ```
 
@@ -81,7 +91,11 @@ npm run dev
 ---
 
 ## 📜 Documentation & Notes
-This project is part of a series of academic implementations focused on high-quality software engineering standards. Detailed technical notes and architectural decisions are available in the internal documentation.
+This project is part of a series of academic implementations focused on high-quality software engineering standards. Detailed technical notes live in [`Markdown/`](./Markdown):
+- [API.md](./Markdown/API.md) — endpoint reference
+- [DEVELOPMENT.md](./Markdown/DEVELOPMENT.md) — day-to-day dev commands
+- [CONTRIBUTING.md](./Markdown/CONTRIBUTING.md) — contribution guide
+- [RULES.md](./Markdown/RULES.md) — team conventions (branch naming, etc.)
 
 ---
 
