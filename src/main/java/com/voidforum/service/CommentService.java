@@ -2,6 +2,8 @@ package com.voidforum.service;
 
 import com.voidforum.dto.CommentCreateDto;
 import com.voidforum.dto.CommentResponseDto;
+import com.voidforum.exception.ForbiddenException;
+import com.voidforum.exception.ResourceNotFoundException;
 import com.voidforum.model.Comment;
 import com.voidforum.model.Post;
 import com.voidforum.model.User;
@@ -27,16 +29,16 @@ public class CommentService {
 
     public CommentResponseDto createComment(CommentCreateDto request, String username) {
         if (!postRepository.existsById(request.getPostId())) {
-            throw new RuntimeException("Error: El post al que intentás comentar no existe.");
+            throw new ResourceNotFoundException("Error: El post al que intentás comentar no existe.");
         }
 
         if (request.getParentCommentId() != null && !request.getParentCommentId().isEmpty()) {
             commentRepository.findById(request.getParentCommentId())
-                    .orElseThrow(() -> new RuntimeException("Error: Comentario padre no encontrado."));
+                    .orElseThrow(() -> new ResourceNotFoundException("Error: Comentario padre no encontrado."));
         }
 
         User author = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Error: Usuario no encontrado."));
+                .orElseThrow(() -> new ResourceNotFoundException("Error: Usuario no encontrado."));
 
         Comment comment = Comment.builder()
                 .content(request.getContent())
@@ -74,10 +76,10 @@ public class CommentService {
 
     public void deleteComment(String commentId, String username) {
         Comment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new RuntimeException("Comentario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Comentario no encontrado"));
 
         if (!comment.getAuthorUsername().equals(username)) {
-            throw new RuntimeException("No tienes permiso para borrar este comentario");
+            throw new ForbiddenException("No tienes permiso para borrar este comentario");
         }
 
         String postId = comment.getPostId();
@@ -126,10 +128,10 @@ public class CommentService {
 
     public CommentResponseDto updateComment(String id, CommentCreateDto commentRequest, String currentUsername) {
         Comment comment = commentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Comentario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Comentario no encontrado"));
 
         if (!comment.getAuthorUsername().equals(currentUsername)) {
-            throw new RuntimeException("No tenés permiso para editar este comentario");
+            throw new ForbiddenException("No tenés permiso para editar este comentario");
         }
 
         comment.setContent(commentRequest.getContent());

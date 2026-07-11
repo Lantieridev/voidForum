@@ -2,6 +2,8 @@ package com.voidforum.service;
 
 import com.voidforum.dto.PostCreateDto;
 import com.voidforum.dto.PostResponseDto;
+import com.voidforum.exception.ForbiddenException;
+import com.voidforum.exception.ResourceNotFoundException;
 import com.voidforum.model.Post;
 import com.voidforum.model.User;
 import com.voidforum.repository.CommentRepository;
@@ -82,7 +84,7 @@ public class PostServiceTest {
     void createPost_UserNotFound() {
         when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> {
+        assertThrows(ResourceNotFoundException.class, () -> {
             postService.createPost(postCreateDto, "unknown");
         });
     }
@@ -102,8 +104,35 @@ public class PostServiceTest {
     void deletePost_Forbidden() {
         when(postRepository.findById("post123")).thenReturn(Optional.of(post));
 
-        assertThrows(RuntimeException.class, () -> {
+        assertThrows(ForbiddenException.class, () -> {
             postService.deletePost("post123", "otheruser");
+        });
+    }
+
+    @Test
+    void deletePost_NotFound() {
+        when(postRepository.findById("missing")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            postService.deletePost("missing", "testuser");
+        });
+    }
+
+    @Test
+    void updatePost_Forbidden() {
+        when(postRepository.findById("post123")).thenReturn(Optional.of(post));
+
+        assertThrows(ForbiddenException.class, () -> {
+            postService.updatePost("post123", postCreateDto, "otheruser");
+        });
+    }
+
+    @Test
+    void updatePost_NotFound() {
+        when(postRepository.findById("missing")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> {
+            postService.updatePost("missing", postCreateDto, "testuser");
         });
     }
 }

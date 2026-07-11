@@ -2,6 +2,8 @@ package com.voidforum.service;
 
 import com.voidforum.dto.PostCreateDto;
 import com.voidforum.dto.PostResponseDto;
+import com.voidforum.exception.ForbiddenException;
+import com.voidforum.exception.ResourceNotFoundException;
 import com.voidforum.model.Post;
 import com.voidforum.model.User;
 import com.voidforum.model.Vote;
@@ -28,7 +30,7 @@ public class PostService {
 
     public PostResponseDto createPost(PostCreateDto request, String username) {
         User author = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
         Post post = Post.builder()
                 .content(request.getContent())
@@ -89,11 +91,11 @@ public class PostService {
 
     public PostResponseDto updatePost(String id, PostCreateDto postRequest, String currentUsername) {
         Post post = postRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Post no encontrado"));
 
         // Seguridad: Solo el autor edita
         if (!post.getAuthorUsername().equals(currentUsername)) {
-            throw new RuntimeException("No tenés permiso para editar este post");
+            throw new ForbiddenException("No tenés permiso para editar este post");
         }
 
         // Actualización de campos
@@ -106,11 +108,11 @@ public class PostService {
 
     public void deletePost(String postId, String username) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Post no encontrado"));
 
         // Seguridad: Solo el dueño borra
         if (!post.getAuthorUsername().equals(username)) {
-            throw new RuntimeException("No tienes permiso para borrar este post");
+            throw new ForbiddenException("No tienes permiso para borrar este post");
         }
 
         // --- BORRADO EN CASCADA ---
@@ -135,14 +137,14 @@ public class PostService {
 
     public Post incrementSavedCount(String postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Post no encontrado"));
         post.setSavedCount((post.getSavedCount() != null ? post.getSavedCount() : 0) + 1);
         return postRepository.save(post);
     }
 
     public Post decrementSavedCount(String postId) {
         Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new RuntimeException("Post no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Post no encontrado"));
         if (post.getSavedCount() != null && post.getSavedCount() > 0) {
             post.setSavedCount(post.getSavedCount() - 1);
         }
