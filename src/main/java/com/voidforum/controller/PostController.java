@@ -9,9 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
-import com.voidforum.dto.PostCreateDto;
-import com.voidforum.dto.PostResponseDto;
-
 import java.util.Collections;
 import java.util.List;
 
@@ -70,15 +67,11 @@ public class PostController {
 
     @GetMapping("/feed")
     public ResponseEntity<List<PostResponseDto>> getFeed() {
-        try {
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            List<String> followingIds = userService.getFollowingIds(username);
-            if (followingIds == null || followingIds.isEmpty()) {
-                return ResponseEntity.ok(Collections.emptyList());
-            }
-            return ResponseEntity.ok(postService.getFeed(followingIds));
-        } catch (Exception e) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        List<String> followingIds = userService.getFollowingIds(username);
+        if (followingIds == null || followingIds.isEmpty()) {
             return ResponseEntity.ok(Collections.emptyList());
         }
+        return ResponseEntity.ok(postService.getFeed(followingIds));
     }
 }

@@ -2,6 +2,9 @@ package com.voidforum.service;
 
 import com.voidforum.dto.UpdateNotificationsDto;
 import com.voidforum.dto.UpdateProfileDto;
+import com.voidforum.exception.ConflictException;
+import com.voidforum.exception.ResourceNotFoundException;
+import com.voidforum.exception.UnauthorizedException;
 import com.voidforum.model.User;
 import com.voidforum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,12 +32,12 @@ public class UserService {
 
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
     public User findById(String id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
     public User updateProfile(String username, UpdateProfileDto dto) {
@@ -42,14 +45,14 @@ public class UserService {
 
         if (dto.username() != null && !dto.username().equals(username)) {
             if (userRepository.findByUsername(dto.username()).isPresent()) {
-                throw new RuntimeException("El nombre de usuario ya está en uso");
+                throw new ConflictException("El nombre de usuario ya está en uso");
             }
             user.setUsername(dto.username());
         }
 
         if (dto.email() != null && !dto.email().equals(user.getEmail())) {
             if (userRepository.findByEmail(dto.email()).isPresent()) {
-                throw new RuntimeException("El email ya está en uso");
+                throw new ConflictException("El email ya está en uso");
             }
             user.setEmail(dto.email());
         }
@@ -60,7 +63,7 @@ public class UserService {
 
         if (dto.bio() != null) {
             if (dto.bio().length() > 280) {
-                throw new RuntimeException("La bio no puede exceder 280 caracteres");
+                throw new IllegalArgumentException("La bio no puede exceder 280 caracteres");
             }
             user.setBio(dto.bio());
         }
@@ -72,7 +75,7 @@ public class UserService {
         User user = findByUsername(username);
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("La contraseña actual es incorrecta");
+            throw new UnauthorizedException("La contraseña actual es incorrecta");
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -91,7 +94,7 @@ public class UserService {
         User user = findByUsername(username);
 
         if (!passwordEncoder.matches(password, user.getPassword())) {
-            throw new RuntimeException("La contraseña es incorrecta");
+            throw new UnauthorizedException("La contraseña es incorrecta");
         }
 
         String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
@@ -112,7 +115,7 @@ public class UserService {
         User targetUser = findById(targetUserId);
 
         if (currentUser.getId().equals(targetUserId)) {
-            throw new RuntimeException("No puedes seguirte a ti mismo");
+            throw new IllegalArgumentException("No puedes seguirte a ti mismo");
         }
 
         if (currentUser.getFollowingIds() == null) {
@@ -120,7 +123,7 @@ public class UserService {
         }
 
         if (currentUser.getFollowingIds().contains(targetUserId)) {
-            throw new RuntimeException("Ya sigues a este usuario");
+            throw new ConflictException("Ya sigues a este usuario");
         }
 
         currentUser.getFollowingIds().add(targetUserId);
@@ -136,7 +139,7 @@ public class UserService {
         User targetUser = findById(targetUserId);
 
         if (currentUser.getFollowingIds() == null || !currentUser.getFollowingIds().contains(targetUserId)) {
-            throw new RuntimeException("No sigues a este usuario");
+            throw new IllegalArgumentException("No sigues a este usuario");
         }
 
         currentUser.getFollowingIds().remove(targetUserId);

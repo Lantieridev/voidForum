@@ -1,5 +1,6 @@
 package com.voidforum.controller;
 
+import com.voidforum.exception.UnauthorizedException;
 import com.voidforum.model.User;
 import com.voidforum.repository.UserRepository;
 import com.voidforum.service.VoteService;
@@ -23,54 +24,33 @@ public class VoteController {
             @RequestParam int value,
             @RequestParam(defaultValue = "post") String targetType,
             Principal principal) {
-        try {
-            String username = principal.getName();
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            Map<String, Object> result = voteService.toggleVote(targetId, user.getId(), value, targetType);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        User user = userRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new UnauthorizedException("Token inválido o expirado"));
+        Map<String, Object> result = voteService.toggleVote(targetId, user.getId(), value, targetType);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/user")
     public ResponseEntity<?> getUserVotes(Principal principal) {
-        try {
-            String username = principal.getName();
-            User user = userRepository.findByUsername(username)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-            Map<String, Object> response = voteService.getUserVotedPosts(user.getId());
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        User user = userRepository.findByUsername(principal.getName())
+                .orElseThrow(() -> new UnauthorizedException("Token inválido o expirado"));
+        Map<String, Object> response = voteService.getUserVotedPosts(user.getId());
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{targetId}/count")
     public ResponseEntity<?> getVoteCount(
             @PathVariable String targetId,
             @RequestParam(defaultValue = "post") String targetType) {
-        try {
-            int count;
-            if ("comment".equals(targetType)) {
-                count = voteService.getCommentVoteCount(targetId);
-            } else {
-                count = voteService.getPostVoteCount(targetId);
-            }
-            return ResponseEntity.ok(Map.of("votes", count));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        int count = "comment".equals(targetType)
+                ? voteService.getCommentVoteCount(targetId)
+                : voteService.getPostVoteCount(targetId);
+        return ResponseEntity.ok(Map.of("votes", count));
     }
 
     @PostMapping("/cleanup")
     public ResponseEntity<?> cleanupDuplicateVotes() {
-        try {
-            Map<String, Object> result = voteService.cleanupDuplicateVotes();
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        Map<String, Object> result = voteService.cleanupDuplicateVotes();
+        return ResponseEntity.ok(result);
     }
 }

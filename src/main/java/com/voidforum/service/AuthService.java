@@ -3,6 +3,8 @@ package com.voidforum.service;
 import com.voidforum.dto.UserLoginDto;
 import com.voidforum.dto.UserRegisterDto;
 import com.voidforum.dto.UserResponseDto;
+import com.voidforum.exception.ConflictException;
+import com.voidforum.exception.UnauthorizedException;
 import com.voidforum.model.User;
 import com.voidforum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +23,7 @@ public class AuthService {
 
     public UserResponseDto register(UserRegisterDto request) {
         if (userRepository.findByUsername(request.username()).isPresent()) {
-            throw new RuntimeException("El nombre de usuario ya existe");
+            throw new ConflictException("El nombre de usuario ya existe");
         }
 
         User user = User.builder()
@@ -47,11 +49,13 @@ public class AuthService {
     }
 
     public Map<String, Object> login(UserLoginDto request) {
+        // Mismo mensaje genérico para usuario inexistente y contraseña incorrecta:
+        // distinguirlos permite enumerar usernames registrados.
         User user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new UnauthorizedException("Usuario o contraseña incorrectos"));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
-            throw new RuntimeException("Contraseña incorrecta");
+            throw new UnauthorizedException("Usuario o contraseña incorrectos");
         }
 
         String token = jwtService.generateToken(user.getUsername());
@@ -74,12 +78,12 @@ public class AuthService {
 
     public Map<String, Object> getCurrentUser(String token) {
         if (!jwtService.validateToken(token)) {
-            throw new RuntimeException("Token inválido o expirado");
+            throw new UnauthorizedException("Token inválido o expirado");
         }
 
         String username = jwtService.extractUsername(token);
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new UnauthorizedException("Token inválido o expirado"));
 
         return Map.of(
                 "token", token,
