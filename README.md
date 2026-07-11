@@ -43,6 +43,30 @@ VoidForum serves as a robust foundation for community-driven content. It leverag
 
 ---
 
+## 🧭 Architecture
+
+```mermaid
+flowchart TB
+    Client["Frontend\n(Vite + Tailwind, separate origin)"]
+
+    subgraph Backend["Spring Boot Backend"]
+        Filter["JwtAuthenticationFilter\n(stateless, reads Bearer token)"]
+        Controllers["Controllers\nAuth · Post · Comment · Vote · User"]
+        Services["Services\n(business logic)"]
+        Repos["Repositories\n(Spring Data MongoDB)"]
+    end
+
+    DB[("MongoDB Atlas\nposts · comments · users · votes")]
+
+    Client -->|"Authorization: Bearer <jwt>"| Filter
+    Filter --> Controllers
+    Controllers --> Services
+    Services --> Repos
+    Repos --> DB
+```
+
+Decisiones de arquitectura documentadas en [`Markdown/adr/`](./Markdown/adr/README.md) — por qué MongoDB, por qué JWT stateless con filtro propio, y por qué los secretos viven solo en variables de entorno.
+
 ## 📂 Project Structure
 
 ```bash
@@ -96,6 +120,7 @@ This project is part of a series of academic implementations focused on high-qua
 - [DEVELOPMENT.md](./Markdown/DEVELOPMENT.md) — day-to-day dev commands
 - [CONTRIBUTING.md](./Markdown/CONTRIBUTING.md) — contribution guide
 - [RULES.md](./Markdown/RULES.md) — team conventions (branch naming, etc.)
+- [adr/](./Markdown/adr/README.md) — architecture decision records
 
 ---
 
