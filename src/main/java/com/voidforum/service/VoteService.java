@@ -23,21 +23,6 @@ public class VoteService {
     private final UserRepository userRepository;
     private final PostRepository postRepository;
 
-    public void vote(String targetId, int value, String username, String targetType) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        Vote vote = voteRepository.findByUserIdAndTargetIdAndTargetType(user.getId(), targetId, targetType)
-                .orElse(Vote.builder()
-                        .userId(user.getId())
-                        .targetId(targetId)
-                        .targetType(targetType)
-                        .build());
-
-        vote.setValue(value);
-        voteRepository.save(vote);
-    }
-
     @Transactional
     public Map<String, Object> toggleVote(String targetId, String userId, int newValue, String targetType) {
         Optional<Vote> existingVote = voteRepository.findByUserIdAndTargetIdAndTargetType(userId, targetId, targetType);

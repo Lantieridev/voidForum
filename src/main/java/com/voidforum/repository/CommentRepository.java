@@ -10,6 +10,5 @@ public interface CommentRepository extends MongoRepository<Comment, String> {
 
     //Métodos para replies
     List<Comment> findByParentCommentId(String parentCommentId);
-    List<Comment> findByPostIdAndParentCommentIdIsNull(String postId); // Solo comentarios principales
     void deleteAllByParentCommentId(String parentCommentId); // Borrar replies también
 }
