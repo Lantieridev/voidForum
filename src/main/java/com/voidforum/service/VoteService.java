@@ -27,6 +27,13 @@ public class VoteService {
     public Map<String, Object> toggleVote(String targetId, String userId, int newValue, String targetType) {
         Optional<Vote> existingVote = voteRepository.findByUserIdAndTargetIdAndTargetType(userId, targetId, targetType);
 
+        // Capturada ANTES de mutar: existingVote.get() y la fila que se
+        // actualiza más abajo son el mismo objeto, así que si se lee después
+        // de la mutación siempre coincide con newValue (bug real: cambiar de
+        // voto — ej. dislike a like — devolvía userVote=0 como si se hubiera
+        // sacado el voto, en vez del valor nuevo).
+        int previousValue = existingVote.map(Vote::getValue).orElse(0);
+
         if (existingVote.isPresent()) {
             Vote vote = existingVote.get();
             if (vote.getValue() == newValue) {
@@ -58,10 +65,7 @@ public class VoteService {
         }
 
         int voteCount = getVoteCount(targetId, targetType);
-        int userVote = existingVote.map(v -> {
-            if (v.getValue() == newValue) return 0;
-            return newValue;
-        }).orElse(newValue);
+        int userVote = (previousValue == newValue) ? 0 : newValue;
 
         return Map.of(
             "voteCount", voteCount,
