@@ -20,6 +20,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final PostService postService;
+    private final CommentService commentService;
 
     public User registerUser(User user) {
         user.setCreatedAt(LocalDateTime.now());
@@ -101,6 +102,7 @@ public class UserService {
         String newUsername = "[deleted]-" + uniqueId;
 
         postService.anonymizeUserPosts(username, newUsername);
+        commentService.anonymizeUserComments(username, newUsername);
 
         user.setUsername(newUsername);
         user.setEmail("[deleted]-" + uniqueId + "@deleted.local");

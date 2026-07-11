@@ -126,6 +126,14 @@ public class CommentService {
         );
     }
 
+    public void anonymizeUserComments(String oldUsername, String newUsername) {
+        List<Comment> comments = commentRepository.findByAuthorUsername(oldUsername);
+        for (Comment comment : comments) {
+            comment.setAuthorUsername(newUsername);
+        }
+        commentRepository.saveAll(comments);
+    }
+
     public CommentResponseDto updateComment(String id, CommentCreateDto commentRequest, String currentUsername) {
         Comment comment = commentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Comentario no encontrado"));
