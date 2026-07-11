@@ -31,18 +31,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        // 2. Extraer el token
+        // 2. Extraer el token. extractUsername/isTokenValid parsean el JWT sin
+        // manejo de excepciones propio (a diferencia de validateToken) — un
+        // token vencido, malformado o con firma inválida tira una excepción
+        // sin capturar acá, y este filtro corre antes del DispatcherServlet,
+        // así que GlobalExceptionHandler nunca la ve: cualquier request con
+        // un Bearer token vencido terminaba en un 500 crudo de Tomcat. Se
+        // trata como "no autenticado" en vez de romper la cadena de filtros.
         final String jwt = authHeader.substring(7);
-        final String username = jwtService.extractUsername(jwt);
-
-        // 3. Si es válido, lo metemos en el "Contexto de Seguridad"
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            if (jwtService.isTokenValid(jwt, username)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        username, null, Collections.emptyList()
-                );
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+        try {
+            final String username = jwtService.extractUsername(jwt);
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (jwtService.isTokenValid(jwt, username)) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            username, null, Collections.emptyList()
+                    );
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+        } catch (RuntimeException e) {
+            // Token inválido/vencido/malformado — seguir sin autenticar.
         }
         filterChain.doFilter(request, response);
     }
