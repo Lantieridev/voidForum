@@ -1,12 +1,13 @@
 package com.voidforum.controller;
 
+import com.voidforum.domain.model.User;
+import com.voidforum.domain.port.in.UserUseCase;
+import com.voidforum.domain.port.in.VoteUseCase;
 import com.voidforum.exception.UnauthorizedException;
-import com.voidforum.model.User;
-import com.voidforum.repository.UserRepository;
-import com.voidforum.service.VoteService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.security.Principal;
 import java.util.Map;
 
@@ -15,8 +16,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class VoteController {
 
-    private final VoteService voteService;
-    private final UserRepository userRepository;
+    private final VoteUseCase voteUseCase;
+    private final UserUseCase userUseCase;
 
     @PostMapping("/{targetId}")
     public ResponseEntity<?> vote(
@@ -24,17 +25,25 @@ public class VoteController {
             @RequestParam int value,
             @RequestParam(defaultValue = "post") String targetType,
             Principal principal) {
-        User user = userRepository.findByUsername(principal.getName())
-                .orElseThrow(() -> new UnauthorizedException("Token inválido o expirado"));
-        Map<String, Object> result = voteService.toggleVote(targetId, user.getId(), value, targetType);
+        User user;
+        try {
+            user = userUseCase.findByUsername(principal.getName());
+        } catch (Exception e) {
+            throw new UnauthorizedException("Token inválido o expirado");
+        }
+        Map<String, Object> result = voteUseCase.toggleVote(targetId, user.getId(), value, targetType);
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("/user")
     public ResponseEntity<?> getUserVotes(Principal principal) {
-        User user = userRepository.findByUsername(principal.getName())
-                .orElseThrow(() -> new UnauthorizedException("Token inválido o expirado"));
-        Map<String, Object> response = voteService.getUserVotedPosts(user.getId());
+        User user;
+        try {
+            user = userUseCase.findByUsername(principal.getName());
+        } catch (Exception e) {
+            throw new UnauthorizedException("Token inválido o expirado");
+        }
+        Map<String, Object> response = voteUseCase.getUserVotedPosts(user.getId());
         return ResponseEntity.ok(response);
     }
 
@@ -43,14 +52,14 @@ public class VoteController {
             @PathVariable String targetId,
             @RequestParam(defaultValue = "post") String targetType) {
         int count = "comment".equals(targetType)
-                ? voteService.getCommentVoteCount(targetId)
-                : voteService.getPostVoteCount(targetId);
+                ? voteUseCase.getCommentVoteCount(targetId)
+                : voteUseCase.getPostVoteCount(targetId);
         return ResponseEntity.ok(Map.of("votes", count));
     }
 
     @PostMapping("/cleanup")
     public ResponseEntity<?> cleanupDuplicateVotes() {
-        Map<String, Object> result = voteService.cleanupDuplicateVotes();
+        Map<String, Object> result = voteUseCase.cleanupDuplicateVotes();
         return ResponseEntity.ok(result);
     }
 }

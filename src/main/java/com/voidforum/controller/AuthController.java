@@ -1,13 +1,14 @@
 package com.voidforum.controller;
 
+import com.voidforum.domain.port.in.AuthUseCase;
 import com.voidforum.dto.UserLoginDto;
 import com.voidforum.dto.UserRegisterDto;
 import com.voidforum.dto.UserResponseDto;
 import com.voidforum.exception.UnauthorizedException;
-import com.voidforum.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.Map;
 
 @RestController
@@ -15,17 +16,17 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+    private final AuthUseCase authUseCase;
 
     @PostMapping("/register")
     public ResponseEntity<UserResponseDto> register(@RequestBody UserRegisterDto request) {
-        UserResponseDto response = authService.register(request);
+        UserResponseDto response = authUseCase.register(request);
         return ResponseEntity.status(201).body(response);
     }
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestBody UserLoginDto request) {
-        Map<String, Object> response = authService.login(request);
+        Map<String, Object> response = authUseCase.login(request);
         return ResponseEntity.ok(response);
     }
 
@@ -35,7 +36,7 @@ public class AuthController {
             throw new UnauthorizedException("Token no proporcionado");
         }
         String token = authHeader.substring(7);
-        Map<String, Object> response = authService.getCurrentUser(token);
+        Map<String, Object> response = authUseCase.getCurrentUser(token);
         return ResponseEntity.ok(response);
     }
 }
