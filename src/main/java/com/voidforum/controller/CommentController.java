@@ -1,16 +1,14 @@
 package com.voidforum.controller;
 
+import com.voidforum.domain.port.in.CommentUseCase;
 import com.voidforum.dto.CommentCreateDto;
 import com.voidforum.dto.CommentResponseDto;
 import com.voidforum.exception.UnauthorizedException;
-import com.voidforum.model.User;
-import com.voidforum.repository.UserRepository;
-import com.voidforum.service.CommentService;
 import com.voidforum.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.security.Principal;
+
 import java.util.List;
 import java.util.Map;
 
@@ -19,13 +17,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CommentController {
 
-    private final CommentService commentService;
+    private final CommentUseCase commentUseCase;
     private final JwtService jwtService;
-    private final UserRepository userRepository;
 
     @GetMapping("/posts/{postId}/comments")
     public ResponseEntity<?> getComments(@PathVariable String postId) {
-        List<CommentResponseDto> comments = commentService.getCommentsByPost(postId, null);
+        List<CommentResponseDto> comments = commentUseCase.getCommentsByPost(postId, null);
         return ResponseEntity.ok(comments);
     }
 
@@ -40,7 +37,7 @@ public class CommentController {
         dto.setContent(request.get("content"));
         dto.setPostId(postId);
         dto.setParentCommentId(request.get("parentCommentId"));
-        CommentResponseDto comment = commentService.createComment(dto, username);
+        CommentResponseDto comment = commentUseCase.createComment(dto, username);
         return ResponseEntity.ok(comment);
     }
 
@@ -50,7 +47,7 @@ public class CommentController {
             @RequestHeader(value = "Authorization", required = false) String authHeader
     ) {
         String username = extractUsername(authHeader);
-        commentService.deleteComment(id, username);
+        commentUseCase.deleteComment(id, username);
         return ResponseEntity.noContent().build();
     }
 
@@ -63,7 +60,7 @@ public class CommentController {
         String username = extractUsername(authHeader);
         CommentCreateDto dto = new CommentCreateDto();
         dto.setContent(request.get("content"));
-        CommentResponseDto updated = commentService.updateComment(id, dto, username);
+        CommentResponseDto updated = commentUseCase.updateComment(id, dto, username);
         return ResponseEntity.ok(updated);
     }
 
@@ -75,8 +72,6 @@ public class CommentController {
         try {
             return jwtService.extractUsername(token);
         } catch (RuntimeException e) {
-            // JwtService.extractUsername parses the token unguarded (unlike validateToken,
-            // which catches parse failures) - a malformed/expired/tampered token throws here.
             throw new UnauthorizedException("Token inválido o expirado");
         }
     }

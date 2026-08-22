@@ -1,58 +1,69 @@
-package com.voidforum.service;
+package com.voidforum.domain.service;
 
+import com.voidforum.domain.model.User;
+import com.voidforum.domain.port.in.CommentUseCase;
+import com.voidforum.domain.port.in.PostUseCase;
+import com.voidforum.domain.port.in.UserUseCase;
+import com.voidforum.domain.port.out.UserRepositoryPort;
 import com.voidforum.dto.UpdateNotificationsDto;
 import com.voidforum.dto.UpdateProfileDto;
 import com.voidforum.exception.ConflictException;
 import com.voidforum.exception.ResourceNotFoundException;
 import com.voidforum.exception.UnauthorizedException;
-import com.voidforum.model.User;
-import com.voidforum.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class UserService {
+public class UserServiceImpl implements UserUseCase {
 
-    private final UserRepository userRepository;
+    private final UserRepositoryPort userRepositoryPort;
     private final BCryptPasswordEncoder passwordEncoder;
-    private final PostService postService;
-    private final CommentService commentService;
+    private final PostUseCase postUseCase;
+    private final CommentUseCase commentUseCase;
 
+    @Override
     public User registerUser(User user) {
         user.setCreatedAt(LocalDateTime.now());
-        return userRepository.save(user);
+        return userRepositoryPort.save(user);
     }
 
+    @Override
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        return userRepositoryPort.findAll();
     }
 
+    @Override
     public User findByUsername(String username) {
-        return userRepository.findByUsername(username)
+        return userRepositoryPort.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
+    @Override
     public User findById(String id) {
-        return userRepository.findById(id)
+        return userRepositoryPort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
+    @Override
     public User updateProfile(String username, UpdateProfileDto dto) {
         User user = findByUsername(username);
 
         if (dto.username() != null && !dto.username().equals(username)) {
-            if (userRepository.findByUsername(dto.username()).isPresent()) {
+            if (userRepositoryPort.findByUsername(dto.username()).isPresent()) {
                 throw new ConflictException("El nombre de usuario ya está en uso");
             }
             user.setUsername(dto.username());
         }
 
         if (dto.email() != null && !dto.email().equals(user.getEmail())) {
-            if (userRepository.findByEmail(dto.email()).isPresent()) {
+            if (userRepositoryPort.findByEmail(dto.email()).isPresent()) {
                 throw new ConflictException("El email ya está en uso");
             }
             user.setEmail(dto.email());
@@ -69,9 +80,10 @@ public class UserService {
             user.setBio(dto.bio());
         }
 
-        return userRepository.save(user);
+        return userRepositoryPort.save(user);
     }
 
+    @Override
     public User changePassword(String username, String currentPassword, String newPassword) {
         User user = findByUsername(username);
 
@@ -80,17 +92,19 @@ public class UserService {
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
-        return userRepository.save(user);
+        return userRepositoryPort.save(user);
     }
 
+    @Override
     public User updateNotifications(String username, UpdateNotificationsDto dto) {
         User user = findByUsername(username);
         user.setNotifyLikes(dto.notifyLikes());
         user.setNotifyComments(dto.notifyComments());
         user.setNotifyMentions(dto.notifyMentions());
-        return userRepository.save(user);
+        return userRepositoryPort.save(user);
     }
 
+    @Override
     public void deleteAccount(String username, String password) {
         User user = findByUsername(username);
 
@@ -98,20 +112,21 @@ public class UserService {
             throw new UnauthorizedException("La contraseña es incorrecta");
         }
 
-        String uniqueId = java.util.UUID.randomUUID().toString().substring(0, 8);
+        String uniqueId = UUID.randomUUID().toString().substring(0, 8);
         String newUsername = "[deleted]-" + uniqueId;
 
-        postService.anonymizeUserPosts(username, newUsername);
-        commentService.anonymizeUserComments(username, newUsername);
+        postUseCase.anonymizeUserPosts(username, newUsername);
+        commentUseCase.anonymizeUserComments(username, newUsername);
 
         user.setUsername(newUsername);
         user.setEmail("[deleted]-" + uniqueId + "@deleted.local");
         user.setDisplayName(null);
         user.setBio(null);
         user.setPassword(null);
-        userRepository.save(user);
+        userRepositoryPort.save(user);
     }
 
+    @Override
     public void follow(String currentUsername, String targetUserId) {
         User currentUser = findByUsername(currentUsername);
         User targetUser = findById(targetUserId);
@@ -121,7 +136,7 @@ public class UserService {
         }
 
         if (currentUser.getFollowingIds() == null) {
-            currentUser.setFollowingIds(new java.util.ArrayList<>());
+            currentUser.setFollowingIds(new ArrayList<>());
         }
 
         if (currentUser.getFollowingIds().contains(targetUserId)) {
@@ -130,12 +145,13 @@ public class UserService {
 
         currentUser.getFollowingIds().add(targetUserId);
         currentUser.setFollowingCount(currentUser.getFollowingCount() + 1);
-        userRepository.save(currentUser);
+        userRepositoryPort.save(currentUser);
 
         targetUser.setFollowerCount(targetUser.getFollowerCount() + 1);
-        userRepository.save(targetUser);
+        userRepositoryPort.save(targetUser);
     }
 
+    @Override
     public void unfollow(String currentUsername, String targetUserId) {
         User currentUser = findByUsername(currentUsername);
         User targetUser = findById(targetUserId);
@@ -146,52 +162,59 @@ public class UserService {
 
         currentUser.getFollowingIds().remove(targetUserId);
         currentUser.setFollowingCount(Math.max(0, currentUser.getFollowingCount() - 1));
-        userRepository.save(currentUser);
+        userRepositoryPort.save(currentUser);
 
         targetUser.setFollowerCount(Math.max(0, targetUser.getFollowerCount() - 1));
-        userRepository.save(targetUser);
+        userRepositoryPort.save(targetUser);
     }
 
+    @Override
     public boolean isFollowing(String currentUsername, String targetUserId) {
         User currentUser = findByUsername(currentUsername);
         return currentUser.getFollowingIds() != null && currentUser.getFollowingIds().contains(targetUserId);
     }
 
+    @Override
     public List<User> getFollowers(String userId) {
-        return userRepository.findByFollowingId(userId);
+        return userRepositoryPort.findByFollowingId(userId);
     }
 
+    @Override
     public List<User> getFollowing(String userId) {
         User user = findById(userId);
-        return userRepository.findAllById(user.getFollowingIds());
+        return userRepositoryPort.findAllById(user.getFollowingIds());
     }
 
+    @Override
     public List<String> getFollowingIds(String username) {
         User user = findByUsername(username);
-        return user.getFollowingIds() != null ? user.getFollowingIds() : new java.util.ArrayList<>();
+        return user.getFollowingIds() != null ? user.getFollowingIds() : new ArrayList<>();
     }
 
+    @Override
     public User savePost(String userId, String postId) {
         User user = findById(userId);
         if (user.getSavedPosts() == null) {
-            user.setSavedPosts(new java.util.ArrayList<>());
+            user.setSavedPosts(new ArrayList<>());
         }
         if (!user.getSavedPosts().contains(postId)) {
             user.getSavedPosts().add(postId);
-            return userRepository.save(user);
+            return userRepositoryPort.save(user);
         }
         return user;
     }
 
+    @Override
     public User unsavePost(String userId, String postId) {
         User user = findById(userId);
         if (user.getSavedPosts() != null && user.getSavedPosts().contains(postId)) {
             user.getSavedPosts().remove(postId);
-            return userRepository.save(user);
+            return userRepositoryPort.save(user);
         }
         return user;
     }
 
+    @Override
     public List<String> getSavedPosts(String userId) {
         User user = findById(userId);
         return user.getSavedPosts() != null ? user.getSavedPosts() : List.of();

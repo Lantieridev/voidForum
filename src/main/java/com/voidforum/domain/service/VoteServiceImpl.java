@@ -1,46 +1,44 @@
-package com.voidforum.service;
+package com.voidforum.domain.service;
 
+import com.voidforum.domain.model.Post;
+import com.voidforum.domain.model.User;
+import com.voidforum.domain.model.Vote;
+import com.voidforum.domain.port.in.VoteUseCase;
+import com.voidforum.domain.port.out.PostRepositoryPort;
+import com.voidforum.domain.port.out.UserRepositoryPort;
+import com.voidforum.domain.port.out.VoteRepositoryPort;
 import com.voidforum.dto.PostResponseDto;
-import com.voidforum.model.Vote;
-import com.voidforum.model.Post;
-import com.voidforum.model.User;
-import com.voidforum.repository.VoteRepository;
-import com.voidforum.repository.UserRepository;
-import com.voidforum.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class VoteService {
+public class VoteServiceImpl implements VoteUseCase {
 
-    private final VoteRepository voteRepository;
-    private final UserRepository userRepository;
-    private final PostRepository postRepository;
+    private final VoteRepositoryPort voteRepositoryPort;
+    private final UserRepositoryPort userRepositoryPort;
+    private final PostRepositoryPort postRepositoryPort;
 
+    @Override
     @Transactional
     public Map<String, Object> toggleVote(String targetId, String userId, int newValue, String targetType) {
-        Optional<Vote> existingVote = voteRepository.findByUserIdAndTargetIdAndTargetType(userId, targetId, targetType);
+        Optional<Vote> existingVote = voteRepositoryPort.findByUserIdAndTargetIdAndTargetType(userId, targetId, targetType);
 
-        // Capturada ANTES de mutar: existingVote.get() y la fila que se
-        // actualiza más abajo son el mismo objeto, así que si se lee después
-        // de la mutación siempre coincide con newValue (bug real: cambiar de
-        // voto — ej. dislike a like — devolvía userVote=0 como si se hubiera
-        // sacado el voto, en vez del valor nuevo).
         int previousValue = existingVote.map(Vote::getValue).orElse(0);
 
         if (existingVote.isPresent()) {
             Vote vote = existingVote.get();
             if (vote.getValue() == newValue) {
-                voteRepository.delete(vote);
+                voteRepositoryPort.delete(vote);
             } else {
                 vote.setValue(newValue);
-                voteRepository.save(vote);
+                voteRepositoryPort.save(vote);
             }
         } else {
             Vote newVote = Vote.builder()
@@ -49,18 +47,17 @@ public class VoteService {
                     .targetType(targetType)
                     .value(newValue)
                     .build();
-            voteRepository.save(newVote);
+            voteRepositoryPort.save(newVote);
         }
 
-        // Actualizar voto en post si es targetType = post
         if ("post".equals(targetType)) {
-            postRepository.findById(targetId).ifPresent(post -> {
-                long newVoteCount = voteRepository.findAllByTargetIdAndTargetType(targetId, "post")
+            postRepositoryPort.findById(targetId).ifPresent(post -> {
+                long newVoteCount = voteRepositoryPort.findAllByTargetIdAndTargetType(targetId, "post")
                         .stream()
                         .filter(v -> v.getValue() == 1)
                         .count();
                 post.setVoteCount((int) newVoteCount);
-                postRepository.save(post);
+                postRepositoryPort.save(post);
             });
         }
 
@@ -68,22 +65,22 @@ public class VoteService {
         int userVote = (previousValue == newValue) ? 0 : newValue;
 
         return Map.of(
-            "voteCount", voteCount,
-            "userVote", userVote
+                "voteCount", voteCount,
+                "userVote", userVote
         );
     }
 
+    @Override
     public Map<String, Object> getUserVotedPosts(String userId) {
-        List<Vote> userVotes = voteRepository.findAllByUserIdAndTargetType(userId, "post");
+        List<Vote> userVotes = voteRepositoryPort.findAllByUserIdAndTargetType(userId, "post");
 
         List<String> likedPostIds = userVotes.stream()
                 .filter(v -> v.getValue() == 1)
                 .map(Vote::getTargetId)
                 .collect(Collectors.toList());
 
-        List<Post> likedPosts = postRepository.findAllById(likedPostIds);
-
-        List<Post> userCreatedPosts = postRepository.findByAuthorId(userId);
+        List<Post> likedPosts = postRepositoryPort.findAllById(likedPostIds);
+        List<Post> userCreatedPosts = postRepositoryPort.findByAuthorId(userId);
 
         int postCount = userCreatedPosts.size();
 
@@ -91,7 +88,7 @@ public class VoteService {
                 .map(post -> {
                     String authorDisplayName = null;
                     if (post.getAuthorId() != null) {
-                        var author = userRepository.findById(post.getAuthorId()).orElse(null);
+                        var author = userRepositoryPort.findById(post.getAuthorId()).orElse(null);
                         if (author != null) {
                             authorDisplayName = author.getDisplayName();
                         }
@@ -115,7 +112,7 @@ public class VoteService {
                 .map(post -> {
                     String authorDisplayName = null;
                     if (post.getAuthorId() != null) {
-                        var author = userRepository.findById(post.getAuthorId()).orElse(null);
+                        var author = userRepositoryPort.findById(post.getAuthorId()).orElse(null);
                         if (author != null) {
                             authorDisplayName = author.getDisplayName();
                         }
@@ -135,33 +132,33 @@ public class VoteService {
                 })
                 .collect(Collectors.toList());
 
-        User user = userRepository.findById(userId).orElse(null);
+        User user = userRepositoryPort.findById(userId).orElse(null);
         List<PostResponseDto> savedPostDtos = List.of();
         if (user != null && user.getSavedPosts() != null && !user.getSavedPosts().isEmpty()) {
-            List<Post> savedPostsList = postRepository.findAllById(user.getSavedPosts());
+            List<Post> savedPostsList = postRepositoryPort.findAllById(user.getSavedPosts());
             savedPostDtos = savedPostsList.stream()
-                .map(post -> {
-                    String authorDisplayName = null;
-                    if (post.getAuthorId() != null) {
-                        var author = userRepository.findById(post.getAuthorId()).orElse(null);
-                        if (author != null) {
-                            authorDisplayName = author.getDisplayName();
+                    .map(post -> {
+                        String authorDisplayName = null;
+                        if (post.getAuthorId() != null) {
+                            var author = userRepositoryPort.findById(post.getAuthorId()).orElse(null);
+                            if (author != null) {
+                                authorDisplayName = author.getDisplayName();
+                            }
                         }
-                    }
-                    return new PostResponseDto(
-                        post.getId(),
-                        post.getContent(),
-                        post.getAuthorUsername(),
-                        post.getAuthorId(),
-                        post.getTags() != null ? post.getTags() : List.of(),
-                        post.getVoteCount() != null ? post.getVoteCount() : 0,
-                        post.getCommentCount() != null ? post.getCommentCount() : 0,
-                        post.getCreatedAt(),
-                        post.getSavedCount() != null ? post.getSavedCount() : 0,
-                        authorDisplayName
-                    );
-                })
-                .collect(Collectors.toList());
+                        return new PostResponseDto(
+                                post.getId(),
+                                post.getContent(),
+                                post.getAuthorUsername(),
+                                post.getAuthorId(),
+                                post.getTags() != null ? post.getTags() : List.of(),
+                                post.getVoteCount() != null ? post.getVoteCount() : 0,
+                                post.getCommentCount() != null ? post.getCommentCount() : 0,
+                                post.getCreatedAt(),
+                                post.getSavedCount() != null ? post.getSavedCount() : 0,
+                                authorDisplayName
+                        );
+                    })
+                    .collect(Collectors.toList());
         }
 
         return Map.of(
@@ -173,36 +170,39 @@ public class VoteService {
         );
     }
 
+    @Override
     public int getPostVoteCount(String targetId) {
         return getVoteCount(targetId, "post");
     }
 
+    @Override
     public int getCommentVoteCount(String targetId) {
         return getVoteCount(targetId, "comment");
     }
 
     private int getVoteCount(String targetId, String targetType) {
-        List<Vote> votes = voteRepository.findAllByTargetIdAndTargetType(targetId, targetType);
+        List<Vote> votes = voteRepositoryPort.findAllByTargetIdAndTargetType(targetId, targetType);
         return (int) votes.stream().filter(v -> v.getValue() == 1).count();
     }
 
+    @Override
     public int getUserVote(String userId, String targetId, String targetType) {
-        return voteRepository.findByUserIdAndTargetIdAndTargetType(userId, targetId, targetType)
+        return voteRepositoryPort.findByUserIdAndTargetIdAndTargetType(userId, targetId, targetType)
                 .map(Vote::getValue)
                 .orElse(0);
     }
 
+    @Override
     public Map<String, Object> cleanupDuplicateVotes() {
-        List<Vote> allVotes = voteRepository.findAll();
+        List<Vote> allVotes = voteRepositoryPort.findAll();
         Map<String, List<Vote>> groupedVotes = allVotes.stream()
                 .collect(Collectors.groupingBy(v -> v.getUserId() + "_" + v.getTargetId() + "_" + v.getTargetType()));
 
         int duplicatesRemoved = 0;
         for (Map.Entry<String, List<Vote>> entry : groupedVotes.entrySet()) {
             if (entry.getValue().size() > 1) {
-                Vote keep = entry.getValue().get(0);
                 for (int i = 1; i < entry.getValue().size(); i++) {
-                    voteRepository.delete(entry.getValue().get(i));
+                    voteRepositoryPort.delete(entry.getValue().get(i));
                     duplicatesRemoved++;
                 }
             }
