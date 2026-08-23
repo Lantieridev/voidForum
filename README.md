@@ -1,7 +1,7 @@
 # 🌌 VoidForum | Community Hub
 
 ![Java](https://img.shields.io/badge/Java-17-orange?style=for-the-badge&logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2-6DB33F?style=for-the-badge&logo=springboot)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1-6DB33F?style=for-the-badge&logo=springboot)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 ![CI](https://img.shields.io/github/actions/workflow/status/Lantieridev/voidForum/ci.yml?branch=main&style=for-the-badge&label=CI)
@@ -70,19 +70,30 @@ Decisiones de arquitectura documentadas en [`Markdown/adr/`](./Markdown/adr/READ
 ## 📂 Project Structure
 
 ```bash
-├── src/                      # Backend Implementation
+├── src/                        # Backend Implementation (Hexagonal / Clean Architecture)
 │   ├── main/java/com/voidforum/
-│   │   ├── config/           # Infrastructure & Security configs
-│   │   ├── controller/       # REST Controllers (API Layer)
-│   │   ├── model/            # Domain Entities (MongoDB Collections)
-│   │   ├── repository/       # Data Access Layer
-│   │   └── service/          # Business Logic Layer
-│   └── main/resources/       # Environment Properties
-├── frontend/                 # Client Implementation
-│   ├── src/                  # Components & Logic
-│   └── img/                  # Static Assets
-├── pom.xml                   # Backend Manifest
-└── package.json              # Frontend Manifest
+│   │   ├── controller/         # Inbound Adapters (REST Controllers)
+│   │   ├── domain/
+│   │   │   ├── model/          # Domain Entities (framework-agnostic)
+│   │   │   ├── port/in/        # Use Case interfaces (inbound ports)
+│   │   │   ├── port/out/       # Repository interfaces (outbound ports)
+│   │   │   └── service/        # Use Case implementations (business logic)
+│   │   ├── infrastructure/
+│   │   │   └── persistence/    # Outbound Adapters (MongoDB)
+│   │   │       ├── adapter/    # Port implementations
+│   │   │       ├── entity/     # MongoDB Documents
+│   │   │       ├── mapper/     # Document <-> Domain mapping
+│   │   │       └── mongo/      # Spring Data MongoDB repositories
+│   │   ├── dto/                # Request/Response DTOs
+│   │   ├── exception/          # Domain & HTTP exceptions
+│   │   ├── config/              # Security & CORS configs
+│   │   └── service/             # Infra-facing helpers (e.g. JwtService)
+│   └── main/resources/         # Environment Properties
+├── frontend/                   # Client Implementation
+│   ├── src/                    # Components & Logic
+│   └── img/                    # Static Assets
+├── pom.xml                     # Backend Manifest
+└── package.json                # Frontend Manifest
 ```
 
 ---
