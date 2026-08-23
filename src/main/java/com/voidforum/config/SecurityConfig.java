@@ -27,6 +27,11 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // CSRF protection guards against a browser automatically attaching an ambient
+                // credential (a session cookie) to a forged cross-site request. Auth here is a
+                // bearer token read from the Authorization header (see JwtAuthenticationFilter) --
+                // no HttpSession/cookie is ever created for authentication, so there's no ambient
+                // credential for CSRF to exploit.
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         // Rutas públicas (Login y Registro)
