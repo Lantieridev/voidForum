@@ -8,7 +8,7 @@
 |---------|-------------|
 | `mvn spring-boot:run` | Iniciar servidor backend |
 | `mvn clean compile` | Compilar el proyecto |
-| `mvn test` | Ejecutar tests |
+| `mvn test` | Ejecutar tests (requiere Docker corriendo — hay un test de contexto con Testcontainers/MongoDB) |
 | `mvn clean package` | Crear JAR |
 | `mvn dependency:tree` | Ver dependencias |
 
@@ -30,8 +30,9 @@
 ## MongoDB Setup
 
 ### Connection String
-```properties
-spring.data.mongodb.uri=mongodb+srv://<username>:<password>@<your-cluster>.mongodb.net/voidforum
+`application.properties` lee la URI desde la variable de entorno `MONGO_URI` (`spring.data.mongodb.uri=${MONGO_URI}`) — no se edita el `.properties` con el valor real, se exporta antes de correr:
+```bash
+export MONGO_URI="mongodb+srv://<username>:<password>@<your-cluster>.mongodb.net/voidforum"
 ```
 
 ### Crear Índices (ejecutar en MongoDB Compass o Mongo Shell)
@@ -166,29 +167,34 @@ git push
 
 ## Estructura de Archivos
 
+Hexagonal: `controller/` es el adapter de entrada, `domain/` es el núcleo (modelo + use cases), `infrastructure/persistence/` es el adapter de salida hacia MongoDB.
+
 ```
 src/main/java/com/voidforum/
-├── VoidForumApplication.java    # Main class
+├── VoidForumApplication.java     # Main class
 ├── config/
-│   └── SecurityConfig.java      # JWT config
+│   ├── SecurityConfig.java       # JWT config
+│   └── JwtAuthenticationFilter.java
 ├── controller/
 │   ├── AuthController.java
 │   ├── PostController.java
-│   └── CommentController.java
-├── model/
-│   ├── User.java
-│   ├── Post.java
-│   ├── Comment.java
-│   └── Vote.java
-├── repository/
-│   ├── UserRepository.java
-│   ├── PostRepository.java
-│   ├── CommentRepository.java
-│   └── VoteRepository.java
+│   ├── CommentController.java
+│   ├── VoteController.java
+│   └── UserController.java
+├── domain/
+│   ├── model/                    # User, Post, Comment, Vote (POJOs, sin Mongo)
+│   ├── port/in/                  # Use case interfaces (AuthUseCase, PostUseCase, ...)
+│   ├── port/out/                 # Repository interfaces (PostRepositoryPort, ...)
+│   └── service/                  # Use case implementations (AuthServiceImpl, ...)
+├── infrastructure/persistence/
+│   ├── entity/                   # @Document (PostDocument, UserDocument, ...)
+│   ├── mongo/                    # MongoRepository interfaces
+│   ├── mapper/                   # Document <-> domain model
+│   └── adapter/                  # Implementan los port/out
+├── dto/                          # Request/response DTOs
+├── exception/                    # GlobalExceptionHandler y excepciones de dominio
 └── service/
-    ├── AuthService.java
-    ├── PostService.java
-    └── CommentService.java
+    └── JwtService.java           # Helper de infraestructura (no es un use case)
 ```
 
 ## Debugging

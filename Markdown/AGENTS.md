@@ -2,25 +2,39 @@
 
 ## Tech Stack
 
-- **Backend**: Java 17 + Spring Boot 3.2 + MongoDB
+- **Backend**: Java 17 + Spring Boot 4.1 (Jackson 3) + MongoDB
 - **Frontend**: Vite + Tailwind CSS 4 + Vanilla JS
 - **Auth**: JWT (sin Redis, sin sesión)
 - **Build**: Maven (backend), npm (frontend)
+- **Testing**: JUnit 5 + Testcontainers (MongoDB) for the `@SpringBootTest` context-load test; Mockito for service unit tests
 
 ## Project Structure
+
+El backend sigue Clean/Hexagonal Architecture (domain → application → infrastructure), no el clásico controller→service→repository de 3 capas:
 
 ```
 voidForum/
 ├── src/main/java/com/voidforum/
 │   ├── VoidForumApplication.java
-│   ├── config/           # CORS, Security
-│   ├── controller/       # REST endpoints
-│   ├── model/           # Entities (User, Post, Comment, Vote)
-│   ├── repository/      # MongoRepository interfaces
-│   └── service/         # Business logic
+│   ├── controller/          # Inbound adapters (REST endpoints)
+│   ├── domain/
+│   │   ├── model/            # Entities (User, Post, Comment, Vote) — sin deps de framework
+│   │   ├── port/in/          # Use case interfaces (ej. PostUseCase, AuthUseCase)
+│   │   ├── port/out/         # Repository interfaces (ej. PostRepositoryPort)
+│   │   └── service/          # Use case implementations (lógica de negocio real)
+│   ├── infrastructure/
+│   │   └── persistence/
+│   │       ├── adapter/      # Implementan los port/out contra MongoDB
+│   │       ├── entity/       # @Document (PostDocument, UserDocument, ...)
+│   │       ├── mapper/       # Document <-> domain model
+│   │       └── mongo/        # Spring Data MongoRepository interfaces
+│   ├── dto/                  # Request/response DTOs (records)
+│   ├── exception/            # ConflictException, UnauthorizedException, etc.
+│   ├── config/                # CORS, Security, JwtAuthenticationFilter
+│   └── service/                # JwtService (helper de infraestructura, no es un use case)
 ├── src/main/resources/
 │   └── application.properties
-├── src/test/java/        # Tests
+├── src/test/java/            # Tests (Testcontainers + Mockito)
 ├── frontend/
 │   ├── src/
 │   │   ├── main.js
@@ -32,9 +46,10 @@ voidForum/
 │   ├── vite.config.js
 │   └── package.json
 ├── pom.xml
-├── package.json
 └── .gitignore
 ```
+
+**Al agregar una feature de backend**: la lógica va en `domain/service/`, no en `controller/`. El controller solo traduce HTTP <-> DTO y delega en un `port/in` (use case interface).
 
 ## Important Notes
 
@@ -99,14 +114,15 @@ Los tags son arrays de strings. Queries comunes:
 ## Common Tasks
 
 ### Agregar nuevo endpoint
-1. Crear método en Service
-2. Crear endpoint en Controller
-3. Agregar en API.md
+1. Agregar método a la interface del use case en `domain/port/in/`
+2. Implementarlo en `domain/service/`
+3. Exponerlo en el `controller/` correspondiente
+4. Agregar en API.md
 
 ### Agregar nueva entidad
-1. Crear clase en model/
-2. Crear Repository interface
-3. Agregar Service si es necesario
+1. Crear clase en `domain/model/` (sin anotaciones de MongoDB)
+2. Crear el port de salida en `domain/port/out/` (interface)
+3. Crear `@Document` en `infrastructure/persistence/entity/`, su `MongoRepository` en `infrastructure/persistence/mongo/`, un mapper en `infrastructure/persistence/mapper/`, y el adapter en `infrastructure/persistence/adapter/` que implementa el port
 
 ### Agregar componente frontend
 1. Crear archivo en `frontend/src/components/`
@@ -155,148 +171,8 @@ db.comments.createIndex({ "authorId": 1 })
 db.votes.createIndex({ "userId": 1, "targetId": 1, "targetType": 1 }, { unique: true })
 ```
 
-## TODO List - Tareas del Proyecto
+## Estado actual del proyecto
 
-### BACKEND - Core (Prioridad Máxima)
+El MVP original (auth JWT, Posts/Comments CRUD, votos, seguridad, tests unitarios y la estructura base del frontend con login/register/settings/create-post) ya está implementado — el backend fue además refactorizado a Clean/Hexagonal Architecture (ver sección "Project Structure" arriba) y migrado a Spring Boot 4.1. La API real incluye, más allá del MVP original, follow/unfollow, saved posts, búsqueda de posts (`/api/posts/search*`) y feed personalizado (`/api/posts/feed`) — ver [API.md](./API.md) para el detalle completo de endpoints.
 
-#### 1. Configuración Base
-- [ ] Configurar application.properties con DB remota
-- [ ] Verificar conexión a MongoDB remota
-- [ ] Probar que el servidor inicia correctamente
-- [ ] Verificar CORS para frontend local
-
-#### 2. Autenticación JWT
-- [ ] Test endpoint `/api/auth/register` - crear usuario
-- [ ] Test endpoint `/api/auth/login` - obtener token
-- [ ] Test endpoint `/api/auth/me` - obtener usuario actual
-- [ ] Validar que el token funciona en endpoints privados
-- [ ] Manejar errores (usuario existe, credenciales inválidas)
-
-#### 3. Posts CRUD
-- [ ] Test `GET /api/posts` - listar posts con paginación
-- [ ] Test `GET /api/posts?tag=xxx` - filtrar por tag
-- [ ] Test `POST /api/posts` - crear post (con auth)
-- [ ] Test `GET /api/posts/{id}` - obtener post específico
-- [ ] Test `PUT /api/posts/{id}` - editar post (solo autor)
-- [ ] Test `DELETE /api/posts/{id}` - eliminar post (solo autor)
-
-#### 4. Votos (Posts)
-- [ ] Test `POST /api/posts/{id}/vote?type=up` - upvote
-- [ ] Test `POST /api/posts/{id}/vote?type=down` - downvote
-- [ ] Verificar que usuario no puede votar dos veces igual
-- [ ] Verificar que puede cambiar vote (up→down)
-- [ ] Verificar que puede quitar vote (clickear mismo)
-- [ ] Verificar conteo correcto de upvotes/downvotes
-
-#### 5. Comentarios CRUD
-- [ ] Test `GET /api/posts/{id}/comments` - listar comentarios
-- [ ] Test `POST /api/posts/{id}/comments` - crear comentario
-- [ ] Test `DELETE /api/comments/{id}` - eliminar comentario (solo autor)
-
-#### 6. Votos (Comentarios)
-- [ ] Test `POST /api/comments/{id}/vote?type=up`
-- [ ] Test `POST /api/comments/{id}/vote?type=down`
-- [ ] Mismos controles que votos de posts
-
-#### 7. Users/Profile (Opcional para MVP)
-- [ ] Test `GET /api/users/{id}/profile`
-- [ ] Test `GET /api/users/{id}/posts`
-
----
-
-### BACKEND - Extras
-
-#### 8. Validación y Errores
-- [ ] Validar request bodies (no vacíos, email formato)
-- [ ] Manejo centralizado de excepciones
-- [ ] Mensajes de error claros
-
-#### 9. Testing
-- [ ] Tests unitarios para AuthService
-- [ ] Tests unitarios para PostService
-- [ ] Tests unitarios para CommentService
-
-#### 10. Seguridad
-- [ ] Proteger endpoints correctamente
-- [ ] No exponer passwords en responses
-- [ ] Validar ownership (autor puede editar/borrar)
-
----
-
-### FRONTEND
-
-#### 11. Estructura Base
-- [ ] Setup completo de Vite + Tailwind
-- [ ] API client (`api.js`) con fetch
-- [ ] Manejo de JWT (guardar en localStorage)
-- [ ] Rutas/pages básicas
-
-#### 12. Auth UI
-- [ ] Página Login
-- [ ] Página Register
-- [ ] Manejo de sesión (logged in / logged out)
-- [ ] Logout functionality
-
-#### 13. Feed/Posts
-- [ ] Lista de posts con paginación
-- [ ] Mostrar votos (up/down counts)
-- [ ] Filtrar por tags
-- [ ] Links a detalle de post
-
-#### 14. Post Detail
-- [ ] Mostrar post completo
-- [ ] Renderizar contenido (texto plano)
-- [ ] Embeds de YouTube/Vimeo
-- [ ] Lista de comentarios
-- [ ] Formulario nuevo comentario
-
-#### 15. Crear Post
-- [ ] Formulario con title, content, tags
-- [ ] Validación básica
-- [ ] Redirect después de crear
-
-#### 16. Votos UI
-- [ ] Botones up/down en posts
-- [ ] Botones up/down en comentarios
-- [ ] Mostrar estado actual (voted)
-- [ ] Actualizar counts en tiempo real
-
-#### 17. Link Previews (Bonus)
-- [ ] Detectar URLs en contenido
-- [ ] Fetch metadata (Open Graph)
-- [ ] Mostrar preview card
-
----
-
-### DOCUMENTACIÓN
-
-#### 18. Actualizar docs
-- [ ] API.md con ejemplos reales
-- [ ] DEVELOPMENT.md con troubleshooting real
-- [ ] README.md actualizado
-
----
-
-## 🔄 Orden Sugerido de Trabajo
-
-```
-FASE 1: Backend Core
-├── 1.1 Config DB + Server start
-├── 1.2 Auth endpoints
-├── 1.3 Posts CRUD
-├── 1.4 Votos posts
-├── 1.5 Comments CRUD
-└── 1.6 Votos comments
-
-FASE 2: Backend Extras
-├── 2.1 Validación
-├── 2.2 Testing
-└── 2.3 Security review
-
-FASE 3: Frontend
-├── 3.1 Setup + API client
-├── 3.2 Auth UI
-├── 3.3 Posts list/detail
-├── 3.4 Votos UI
-└── 3.5 Embeds + Link previews
-```
+No mantengas un checklist de tareas en este archivo: para saber qué está pendiente, revisar los issues abiertos del repo en GitHub en lugar de una lista estática que se desactualiza.

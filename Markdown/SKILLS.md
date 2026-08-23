@@ -16,15 +16,17 @@ git commit -m "feat: nueva funcionalidad"
 git push -u origin feature/nueva-funcionalidad
 ```
 
-### 2. Java/Spring Boot Development
-- **Create Model**: New entity with Lombok
-- **Create Repository**: MongoRepository interface
-- **Create Service**: Business logic layer
-- **Create Controller**: REST endpoints
+### 2. Java/Spring Boot Development (Hexagonal Architecture)
+- **Create Domain Model**: new class in `domain/model/` with Lombok (`@Data`/`@Builder`), no MongoDB annotations
+- **Create Port**: use case interface in `domain/port/in/`, repository interface in `domain/port/out/`
+- **Create Use Case**: implementation in `domain/service/` — this is where business logic lives
+- **Create Persistence Adapter**: `@Document` in `infrastructure/persistence/entity/`, `MongoRepository` in `infrastructure/persistence/mongo/`, mapper in `infrastructure/persistence/mapper/`, adapter implementing the port in `infrastructure/persistence/adapter/`
+- **Create Controller**: REST endpoint in `controller/`, delegates to a `port/in` interface
 
 **Patterns**:
-- Use `@Data`, `@Entity`, `@Document` annotations
+- Domain model stays framework-agnostic (no `@Document`, no Spring annotations)
 - Constructor injection for dependencies
+- Controllers depend on `port/in` interfaces, never on the `domain/service/` implementation directly
 - Follow REST conventions for endpoints
 
 ### 3. Frontend Development (Vanilla JS + Tailwind)

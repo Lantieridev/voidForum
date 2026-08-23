@@ -23,8 +23,7 @@ cd voidForum
 # Verificar Java
 java -version
 
-# Compilar
-cd src
+# Compilar (desde la raíz del repo, pom.xml está ahí, no en src/)
 mvn clean install
 
 # Ejecutar
@@ -47,10 +46,11 @@ npm run build
 
 ### 4. Configuración
 
-**Backend** - Editar `src/main/resources/application.properties`:
-```properties
-spring.data.mongodb.uri=mongodb://localhost:27017/voidforum
-server.port=8080
+**Backend** - las credenciales se leen desde variables de entorno, no se editan en `application.properties` (ver `.devcontainer/env.template`):
+```bash
+export MONGO_URI="mongodb://localhost:27017/voidforum"   # o tu URI de Atlas
+export JWT_SECRET="<tu secret de 256 bits>"
+export JWT_EXPIRATION=86400000
 ```
 
 **Frontend** - Crear `.env` en `frontend/`:
@@ -95,25 +95,27 @@ Luego crear Pull Request en GitHub con:
 
 ```
 voidForum/
-├── src/                    # Backend Java
+├── src/                       # Backend Java (Clean/Hexagonal Architecture)
 │   ├── main/java/com/voidforum/
-│   │   ├── config/        # Configuraciones
-│   │   ├── controller/    # Endpoints REST
-│   │   ├── model/         # Entidades
-│   │   ├── repository/    # MongoDB repositories
-│   │   └── service/      # Lógica de negocio
+│   │   ├── config/            # Configuraciones (Security, CORS)
+│   │   ├── controller/        # Endpoints REST (adapter de entrada)
+│   │   ├── domain/            # model/, port/in/, port/out/, service/
+│   │   ├── infrastructure/    # persistence/ (adapter de salida a MongoDB)
+│   │   ├── dto/                # DTOs de request/response
+│   │   └── exception/          # Excepciones + GlobalExceptionHandler
 │   └── main/resources/
 │       └── application.properties
-├── frontend/              # Frontend Vite
+├── frontend/                  # Frontend Vite
 │   ├── src/
 │   │   ├── main.js
 │   │   ├── api.js
 │   │   └── components/
 │   └── package.json
 ├── pom.xml
-├── package.json
 └── .gitignore
 ```
+
+Ver [AGENTS.md](./AGENTS.md) para el detalle completo de la estructura hexagonal (dónde va cada tipo de archivo al agregar una feature).
 
 ## Reglas Importantes
 
